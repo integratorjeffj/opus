@@ -188,6 +188,8 @@ def capture(force_render=False):
         "stamped_at": r.get("stamped_at", ""), "notes": r.get("notes", ""),
     } for r in rows]
 
+    from webui import help as help_content
+
     conn = [{"kind": kind, "name": name, "label": label, "state": cstate,
              "description": desc, "configured": True,
              "values": demo_values(name), "fields": _fields_for(name)}
@@ -210,8 +212,20 @@ def capture(force_render=False):
         "views": [],
     }
 
+    # The demo is already pointed at a catalogue and an export, so the
+    # checklist reads as it would for someone part-way through setup: the
+    # practice step is not applicable here, and issuing has not happened yet.
+    demo_status = {
+        "catalog": {"ready": True},
+        "export": {"ready": True},
+        "issued": 0,
+    }
+    demo_config = {"practice": False,
+                   "paths": {"out_dir": settings["paths"]["out_dir"]}}
+
     return {
         "settings": settings,
+        "help": help_content.payload(demo_config, demo_status),
         "config_path": "nothing is saved in the demo",
         "version": version,
         "status": {
@@ -285,6 +299,15 @@ MOCK_JS = r"""
       if (path === "/api/catalog") { return reply(D.catalog); }
       if (path === "/api/connectors") { return reply(D.connectors); }
       if (path === "/api/views") { return reply({views: views}); }
+      if (path === "/api/help") {
+        // The checklist reflects what the demo has actually done, so pressing
+        // Stamp ticks the last step here exactly as it would in the app.
+        var h = copy(D.help);
+        h.steps.forEach(function (st) {
+          if (st.id === "review") { st.done = ran; }
+        });
+        return reply(h);
+      }
       if (path === "/api/ledger") {
         if (!ran) {
           return reply({ledger: [], intact: null,
@@ -343,6 +366,15 @@ MOCK_JS = r"""
                       message: "In the app this really reaches " + c.label +
                                " and reports what it found. The demo has no " +
                                "network."});
+      }
+      if (path === "/api/practice") {
+        // There is nothing to switch to: the demo is made-up data already.
+        return Promise.reject(new Error(
+          "This whole page is the practice catalogue. In the app this switch " +
+          "points Opus at it without touching your own files."));
+      }
+      if (path === "/api/onboarding") {
+        return reply({onboarding: {dismissed: !!body.dismissed}, saved: true});
       }
       if (path === "/api/browse") {
         return reply({path: "~/Music", parent: "", home: "~", entries: [

@@ -31,6 +31,8 @@
     <div id="viewlist"></div>
 
     <div class="navlbl">Setup</div>
+    <button class="nav" data-ws="start">
+      <span class="ico" aria-hidden="true">&#9873;</span>Getting started</button>
     <button class="nav" data-ws="conn">
       <span class="ico" aria-hidden="true">&#9741;</span>Connections</button>
     <button class="nav" data-ws="settings">
@@ -40,6 +42,15 @@
   </nav>
 
   <main class="main" id="main">
+
+    <div class="banner practice" id="practicebanner" hidden>
+      <span class="ic" aria-hidden="true">&#9873;</span>
+      <span><b>Practice mode.</b> Opus is using its own made-up catalogue and a
+      made-up day of orders. Everything works for real &mdash; you can stamp,
+      hold, and look at the ledger &mdash; but none of it touches your own
+      files.</span>
+      <button class="btn sm" id="practiceoff">Switch back</button>
+    </div>
 
     <div class="banner" id="setupbanner" hidden>
       <span class="ic" aria-hidden="true">&#9888;</span>
@@ -51,7 +62,7 @@
     <section class="ws" id="ws-overview">
       <div class="wshead">
         <div>
-          <h1 id="ovtitle">Overview</h1>
+          <h1 id="ovtitle">Overview</h1><button class="helpbtn" data-help="overview" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="ovsub">Nothing is written until you approve it.</p>
         </div>
         <div class="acts">
@@ -66,7 +77,7 @@
     <section class="ws" id="ws-orders" hidden>
       <div class="wshead">
         <div>
-          <h1>Orders</h1>
+          <h1>Orders</h1><button class="helpbtn" data-help="orders" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="ordersblurb">&nbsp;</p>
         </div>
         <div class="acts">
@@ -77,7 +88,10 @@
 
       <div class="card">
         <h2>Release threshold
-          <span class="r"><button class="btn sm quiet" id="savethreshold">Save</button></span>
+          <span class="r">
+            <button class="helpbtn" data-help="threshold"
+                    aria-label="What does this do?" title="What does this do?">?</button>
+            <button class="btn sm quiet" id="savethreshold">Save</button></span>
         </h2>
         <div class="body">
           <div class="dial">
@@ -100,7 +114,7 @@
     <!-- ============ Catalogue ============ -->
     <section class="ws" id="ws-catalog" hidden>
       <div class="wshead">
-        <div><h1>Catalogue</h1>
+        <div><h1>Catalogue</h1><button class="helpbtn" data-help="catalog" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="catsub">One folder per piece, the parts inside.</p></div>
         <div class="acts"><button class="btn" id="refreshcat">Refresh</button></div>
       </div>
@@ -110,7 +124,7 @@
     <!-- ============ Ledger ============ -->
     <section class="ws" id="ws-ledger" hidden>
       <div class="wshead">
-        <div><h1>Ledger</h1>
+        <div><h1>Ledger</h1><button class="helpbtn" data-help="ledger" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p>One row per file, written the moment it is issued.</p></div>
         <div class="acts">
           <button class="btn" id="verifybtn">Check the chain</button>
@@ -142,7 +156,7 @@
     <!-- ============ Connections ============ -->
     <section class="ws" id="ws-conn" hidden>
       <div class="wshead">
-        <div><h1>Connections</h1>
+        <div><h1>Connections</h1><button class="helpbtn" data-help="conn" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p>Fill in the fields and press Test. Anything marked planned is a
              contract with no implementation behind it.</p></div>
       </div>
@@ -152,7 +166,7 @@
     <!-- ============ Settings ============ -->
     <section class="ws" id="ws-settings" hidden>
       <div class="wshead">
-        <div><h1>Settings</h1>
+        <div><h1>Settings</h1><button class="helpbtn" data-help="settings" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="cfgpath">&nbsp;</p></div>
       </div>
 
@@ -200,6 +214,22 @@
           <button class="btn" id="savedelivery">Save delivery settings</button>
         </div>
       </div>
+    </section>
+
+    <!-- ============ Getting started ============ -->
+    <section class="ws" id="ws-start" hidden>
+      <div class="wshead">
+        <div>
+          <h1>Getting started</h1>
+          <p>Five things, in order. Each one ticks itself off when it is
+             actually done, so this list cannot tell you that you are further
+             along than you are.</p>
+        </div>
+        <div class="acts">
+          <button class="btn" id="dismissstart">Hide this from the Overview</button>
+        </div>
+      </div>
+      <div id="steplist"></div>
     </section>
 
   </main>

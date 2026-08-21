@@ -80,10 +80,12 @@
   var S = {
     settings: null, status: null, orders: [], counts: {}, ledger: [],
     ledgerIntact: null, connectors: [], views: [], catalog: [],
-    sort: {key: "stamped_at", dir: -1}, arranging: false, holdBelow: 1.01
+    sort: {key: "stamped_at", dir: -1}, arranging: false, holdBelow: 1.01,
+    help: null, steps: [], practice: false
   };
 
-  var WS = ["overview", "orders", "catalog", "ledger", "conn", "settings"];
+  var WS = ["overview", "orders", "catalog", "ledger", "conn", "settings",
+          "start"];
 
   /* ---------------- navigation ---------------- */
   function show(name, opts) {
@@ -132,6 +134,7 @@
 
   /* ---------------- widgets ---------------- */
   var WIDGETS = {
+    start: {name: "Getting started", render: renderStartWidget},
     tiles: {name: "Summary", render: renderTiles},
     attention: {name: "Needs a person", render: renderAttention},
     queue: {name: "Order queue", render: renderQueuePreview},
@@ -144,9 +147,14 @@
     var list = (d.widgets || []).filter(function (w) { return WIDGETS[w.id]; });
     Object.keys(WIDGETS).forEach(function (id) {
       if (!list.some(function (w) { return w.id === id; })) {
-        list.push({id: id, visible: true});
+        // Getting started leads until dismissed; anything new is appended.
+        if (id === "start") { list.unshift({id: id, visible: true}); }
+        else { list.push({id: id, visible: true}); }
       }
     });
+    if (S.status && S.status.onboarding_dismissed) {
+      list = list.filter(function (w) { return w.id !== "start"; });
+    }
     return list;
   }
 
@@ -409,7 +417,13 @@
   }
 
   function previewThreshold(v) {
-    if (!S.orders.length) { return; }
+    if (!S.orders.length) {
+      // Silently doing nothing here reads as a broken control. Say why.
+      $("dialout").innerHTML = "";
+      $("dialnote").textContent =
+        "No orders loaded yet, so there is nothing to preview against.";
+      return;
+    }
     API.post("/api/threshold-preview", {hold_below: v}).then(function (data) {
       var c = data.counts || {};
       $("dialout").innerHTML =
@@ -819,7 +833,11 @@
       if (!d.catalog.ready) { missing.push("a catalogue folder"); }
       if (!d.export.ready) { missing.push("a PayPal export"); }
       if (!d.out_dir) { missing.push("somewhere to put stamped files"); }
-      $("setupbanner").hidden = !missing.length;
+      S.practice = !!d.practice;
+      $("practicebanner").hidden = !d.practice;
+      // In practice mode the setup prompt would be nagging about folders she
+      // is deliberately not using yet.
+      $("setupbanner").hidden = !missing.length || d.practice;
       if (missing.length) {
         $("setuptext").innerHTML = "<b>Not set up yet.</b> Opus still needs " +
           esc(missing.join(", ")) + ".";
@@ -910,6 +928,97 @@
     }).then(function () { $("runbtn").disabled = false; });
   }
 
+  /* ---------------- help ----------------
+     Reachable from every workspace, never modal. It answers the three
+     questions people actually have rather than describing the layout. */
+  function openHelp(key) {
+    var h = S.help && S.help.workspaces && S.help.workspaces[key];
+    if (!h) { return toast("No help for that yet.", true); }
+    openDrawer(h.title, "What this is for", [
+      ["What it is", h.what],
+      ["What you decide here", h.decide],
+      ["Worth knowing", h.watch]
+    ].map(function (pair) {
+      return '<div class="helpsec"><h3>' + esc(pair[0]) + "</h3><p>" +
+        esc(pair[1]) + "</p></div>";
+    }).join(""));
+  }
+
+  /* ---------------- first run ----------------
+     A checklist, not a tour. Every step reports from real settings, so it can
+     never claim she is further along than she is. */
+  function stepButton(step, label) {
+    var go = el("button", "btn sm go", esc(label || step.action));
+    go.addEventListener("click", function () {
+      if (step.id === "practice") { setPractice(true); return; }
+      show(step.workspace || "settings");
+    });
+    return go;
+  }
+
+  function renderSteps() {
+    var host = $("steplist");
+    if (!host) { return; }
+    host.innerHTML = "";
+    (S.steps || []).forEach(function (step, i) {
+      var row = el("div", "step" + (step.done ? " done" : ""),
+        '<span class="n">' + (step.done ? "&#10003;" : (i + 1)) + "</span>" +
+        "<span><h3>" + esc(step.title) + "</h3><p>" + esc(step.body) +
+        "</p></span>");
+      row.appendChild(stepButton(step, step.done ? "Revisit" : step.action));
+      host.appendChild(row);
+    });
+  }
+
+  function renderStartWidget(host) {
+    var left = (S.steps || []).filter(function (x) { return !x.done; });
+    if (!left.length) {
+      host.innerHTML = '<div class="body"><p>All set up. Getting started is ' +
+        "still in the sidebar if you want to reread any of it.</p></div>";
+      return;
+    }
+    var body = el("div", "body");
+    body.appendChild(el("p", null,
+      "<b>" + left.length + " thing" + (left.length === 1 ? "" : "s") +
+      " left to set up.</b> " + esc(left[0].body)));
+    body.appendChild(stepButton(left[0]));
+    var all = el("button", "btn sm", "See all steps");
+    all.style.marginLeft = "8px";
+    all.addEventListener("click", function () { show("start"); });
+    body.appendChild(all);
+    host.innerHTML = "";
+    host.appendChild(body);
+  }
+
+  /* ---------------- practice mode ---------------- */
+  function setPractice(on) {
+    return API.post("/api/practice", {on: on}).then(function (d) {
+      S.practice = d.practice;
+      $("practicebanner").hidden = !d.practice;
+      if (d.threshold_restored) {
+        toast("Practice mode off. The release threshold is back at " +
+              d.threshold_restored.to.toFixed(2) +
+              " — the one you set while practising does not carry over.");
+      } else {
+        toast(d.practice
+          ? "Practice mode on. Using the made-up catalogue."
+          : "Practice mode off. Back to your own folders.");
+      }
+      S.catalog = [];
+      S.connectors = [];
+      return refreshStatus().then(loadHelp).then(loadOrders).then(loadLedger);
+    }).catch(fail);
+  }
+
+  function loadHelp() {
+    return API.get("/api/help").then(function (d) {
+      S.help = d;
+      S.steps = d.steps || [];
+      renderSteps();
+      renderWidgets();
+    }).catch(function () { /* help is never worth an error */ });
+  }
+
   /* ---------------- wiring ---------------- */
   function wire() {
     document.querySelectorAll(".nav[data-ws]").forEach(function (b) {
@@ -921,6 +1030,17 @@
       S.arranging = !S.arranging;
       $("ov-arrange").textContent = S.arranging ? "Done" : "Arrange";
       renderWidgets();
+    });
+    document.querySelectorAll("[data-help]").forEach(function (b) {
+      b.addEventListener("click", function () { openHelp(b.dataset.help); });
+    });
+    $("practiceoff").addEventListener("click", function () { setPractice(false); });
+    $("dismissstart").addEventListener("click", function () {
+      API.post("/api/onboarding", {dismissed: true}).then(function () {
+        if (S.status) { S.status.onboarding_dismissed = true; }
+        renderWidgets();
+        toast("Hidden. It is still in the sidebar.");
+      }).catch(fail);
     });
     $("refreshorders").addEventListener("click", loadOrders);
     $("refreshcat").addEventListener("click", loadCatalog);
@@ -993,6 +1113,8 @@
       S.views = d.views || [];
       renderViews();
       return refreshStatus();
+    }).then(function () {
+      return loadHelp();
     }).then(function () {
       return loadOrders();
     }).then(function () {

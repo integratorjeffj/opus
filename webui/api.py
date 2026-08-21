@@ -50,11 +50,42 @@ def _cache_dir():
     return state.config_dir() / "catalog-cache"
 
 
+def practice_paths():
+    """The bundled fictional catalogue, wherever this build keeps it."""
+    return {
+        "catalog_root": opus.resource_path(Path("samples") / "catalog"),
+        "paypal_csv": opus.resource_path(Path("examples") / "paypal_sample.csv"),
+        "out_dir": state.config_dir() / "practice",
+    }
+
+
+def effective_paths(config):
+    """The folders to actually use, honouring practice mode.
+
+    In practice mode her own settings are read straight past rather than
+    overwritten, so turning it off puts everything back without her having to
+    remember what it was.
+    """
+    if not (config or {}).get("practice"):
+        return dict((config or {}).get("paths") or {})
+    practice = practice_paths()
+    practice["out_dir"].mkdir(parents=True, exist_ok=True)
+    merged = dict((config or {}).get("paths") or {})
+    merged.update({k: str(v) for k, v in practice.items()})
+    merged["catalog_map"] = ""      # scanned from the folder instead
+    return merged
+
+
 def _require(config, *keys):
     """Fetch a configured path, or explain exactly what is missing."""
-    node = config
-    for key in keys:
-        node = (node or {}).get(key)
+    if keys and keys[0] == "paths":
+        node = effective_paths(config)
+        for key in keys[1:]:
+            node = (node or {}).get(key)
+    else:
+        node = config
+        for key in keys:
+            node = (node or {}).get(key)
     if not node:
         raise ApiError(
             "Not set up yet: {} has no value.".format(" / ".join(keys)),
@@ -65,11 +96,12 @@ def _require(config, *keys):
 
 def _catalog_map(config):
     """A catalog map path, built from whatever catalogue source is configured."""
-    explicit = (config.get("paths") or {}).get("catalog_map")
+    paths = effective_paths(config)
+    explicit = paths.get("catalog_map")
     if explicit and Path(explicit).is_file():
         return Path(explicit)
 
-    root = (config.get("paths") or {}).get("catalog_root")
+    root = paths.get("catalog_root")
     if root and Path(root).is_dir():
         cache = _cache_dir()
         cache.mkdir(parents=True, exist_ok=True)
@@ -91,7 +123,7 @@ def _plan(config):
 
     catalog = opus.load_catalog(_catalog_map(config))
     orders, warnings = opus.read_paypal_orders(Path(csv_path))
-    out_dir = (config.get("paths") or {}).get("out_dir") or None
+    out_dir = effective_paths(config).get("out_dir") or None
     plan = opus.plan_paypal_batch(orders, catalog, out_dir)
     return plan, catalog, warnings, out_dir
 
@@ -158,7 +190,7 @@ def put_settings(config, body):
 
 def get_status(config, _body=None):
     """The one call the dashboard makes on load."""
-    paths = config.get("paths") or {}
+    paths = effective_paths(config)
     catalog_ready = bool(paths.get("catalog_root") and
                          Path(paths["catalog_root"]).is_dir())
     export_ready = bool(paths.get("paypal_csv") and
@@ -186,6 +218,9 @@ def get_status(config, _body=None):
 
     return 200, {
         "version": opus.__version__,
+        "practice": bool((config or {}).get("practice")),
+        "onboarding_dismissed": bool(
+            ((config or {}).get("onboarding") or {}).get("dismissed")),
         "ready": catalog_ready and export_ready,
         "catalog": {"ready": catalog_ready, "pieces": pieces, "parts": parts,
                     "root": paths.get("catalog_root", "")},
@@ -266,7 +301,7 @@ def get_catalog(config, _body=None):
 
 
 def get_ledger(config, _body=None):
-    out_dir = (config.get("paths") or {}).get("out_dir")
+    out_dir = effective_paths(config).get("out_dir")
     if not out_dir or not opus.ledger_path(out_dir).exists():
         return 200, {"ledger": [], "intact": None, "report": ["Nothing issued yet."]}
 
@@ -314,7 +349,7 @@ def effective_settings(config, name):
     someone who deliberately points a connector somewhere else keeps that.
     """
     values = dict((config.get("connectors") or {}).get(name) or {})
-    paths = config.get("paths") or {}
+    paths = effective_paths(config)
     for (conn_name, key), path_key in PATH_ALIASES.items():
         if conn_name == name and not values.get(key) and paths.get(path_key):
             values[key] = paths[path_key]
@@ -395,6 +430,50 @@ def test_connector(config, body):
         return 200, {"ok": False,
                      "message": "{}: {}".format(type(exc).__name__, exc)}
     return 200, {"ok": bool(ok), "message": message}
+
+
+def get_help(config, _body=None):
+    """Everything the interface says about itself, plus first-run progress."""
+    from . import help as help_content
+    _status, status = get_status(config)
+    return 200, help_content.payload(config, status)
+
+
+def set_practice(config, body):
+    """Turn practice mode on or off.
+
+    Her real folders are left exactly as they are; the flag only changes which
+    ones get used. That is what makes this safe to try.
+    """
+    on = bool((body or {}).get("on"))
+    was = bool(config.get("practice"))
+    review = config.setdefault("review", {})
+    restored = None
+
+    if on and not was:
+        # Remember the real threshold, so a number chosen while playing with
+        # made-up orders cannot follow her back to real ones.
+        review["hold_below_before_practice"] = review.get("hold_below", 1.01)
+    elif was and not on:
+        kept = review.pop("hold_below_before_practice", None)
+        if kept is not None and kept != review.get("hold_below"):
+            restored = {"from": review.get("hold_below"), "to": kept}
+            review["hold_below"] = kept
+
+    config["practice"] = on
+    state.save(config)
+    _s, status = get_status(config)
+    return 200, {"practice": on, "status": status,
+                 "threshold_restored": restored,
+                 "paths": {k: str(v) for k, v in practice_paths().items()}
+                 if on else {}}
+
+
+def dismiss_onboarding(config, body):
+    config.setdefault("onboarding", {})["dismissed"] = bool(
+        (body or {}).get("dismissed", True))
+    state.save(config)
+    return 200, {"onboarding": config["onboarding"], "saved": True}
 
 
 def get_views(config, _body=None):
@@ -501,7 +580,7 @@ def _build_delivery(config):
 
 
 def verify_ledger(config, _body=None):
-    out_dir = (config.get("paths") or {}).get("out_dir")
+    out_dir = effective_paths(config).get("out_dir")
     if not out_dir:
         raise ApiError("No output folder configured.", status=409)
     path = opus.ledger_path(out_dir)
@@ -568,6 +647,9 @@ ROUTES = {
     ("POST", "/api/dashboard"): put_dashboard,
     ("POST", "/api/run"): run_batch,
     ("POST", "/api/browse"): browse,
+    ("GET", "/api/help"): get_help,
+    ("POST", "/api/practice"): set_practice,
+    ("POST", "/api/onboarding"): dismiss_onboarding,
 }
 
 

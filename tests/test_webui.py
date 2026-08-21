@@ -541,13 +541,165 @@ def test_interface_files_exist():
           js[:adapter_end].count("fetch("))
 
 
+# ---------------------------------------------------------------------------
+# onboarding
+# ---------------------------------------------------------------------------
+
+def test_help():
+    section("What Opus says about itself")
+    with TempConfig():
+        cfg = state.load()
+        _s, payload = call("GET", "/api/help", None, cfg)
+        ws = payload["workspaces"]
+        check("every workspace is documented", len(ws) >= 6, len(ws))
+        check("the threshold has its own entry", "threshold" in ws)
+        for key, entry in ws.items():
+            check("{} answers all three questions".format(key),
+                  all(entry.get(k) for k in ("what", "decide", "watch")))
+            check("{} is written in sentences".format(key),
+                  entry["what"].endswith(".") and len(entry["what"]) > 40)
+        check("the threshold entry says what she is committing to",
+              "without you" in ws["threshold"]["decide"], ws["threshold"]["decide"])
+        check("and names the two hard holds",
+              "already in the ledger" in ws["threshold"]["watch"])
+        check("the ledger entry explains why the chain matters",
+              "evidence" in ws["ledger"]["watch"])
+        check("no entry describes the layout instead of the concept",
+              not any("click the" in e["what"].lower() for e in ws.values()))
+
+
+def test_first_run_steps():
+    section("The checklist reports from real settings")
+    with TempConfig():
+        cfg = state.load()
+        _s, payload = call("GET", "/api/help", None, cfg)
+        steps = payload["steps"]
+        check("there are five steps", len(steps) == 5, len(steps))
+        check("nothing is done on a fresh install",
+              not any(x["done"] for x in steps))
+        check("practice comes first", steps[0]["id"] == "practice")
+        check("each step says what to press", all(x["action"] for x in steps))
+        check("each step says where to go", all(x["workspace"] for x in steps))
+
+        call("POST", "/api/practice", {"on": True}, cfg)
+        _s, payload = call("GET", "/api/help", None, cfg)
+        by_id = {x["id"]: x for x in payload["steps"]}
+        check("turning practice on ticks step one", by_id["practice"]["done"])
+        check("and the catalogue step, since practice supplies one",
+              by_id["catalog"]["done"])
+        check("but not the ones genuinely undone",
+              not by_id["out"]["done"] and not by_id["review"]["done"])
+
+        call("POST", "/api/practice", {"on": False}, cfg)
+        _s, payload = call("GET", "/api/help", None, cfg)
+        check("switching back un-ticks them",
+              not any(x["done"] for x in payload["steps"]))
+
+
+def test_practice_mode():
+    section("Practice mode")
+    with TempConfig():
+        cfg = state.load()
+        cfg["paths"]["catalog_root"] = "/her/own/music"
+        cfg["paths"]["out_dir"] = "/her/own/licensed"
+
+        _s, payload = call("POST", "/api/practice", {"on": True}, cfg)
+        check("it turns on", payload["practice"] is True)
+        check("the app becomes usable immediately",
+              payload["status"]["ready"] is True, payload["status"])
+        check("using the bundled catalogue",
+              payload["status"]["catalog"]["pieces"] == 2)
+        check("her own folders are not overwritten",
+              cfg["paths"]["catalog_root"] == "/her/own/music", cfg["paths"])
+
+        _s, orders = call("GET", "/api/orders", None, cfg)
+        check("a made-up day of orders is there",
+              orders["counts"]["total"] == 4, orders["counts"])
+
+        _s, run = call("POST", "/api/run", {"confirm": True}, cfg)
+        check("a whole batch runs safely", run["summary"]["orders"] >= 0,
+              run["summary"])
+        practice_dir = Path(api.practice_paths()["out_dir"])
+        check("output goes to the practice folder",
+              practice_dir.exists() and "/her/own" not in str(practice_dir),
+              str(practice_dir))
+
+        _s, payload = call("POST", "/api/practice", {"on": False}, cfg)
+        check("it turns off", payload["practice"] is False)
+        check("her own folders come back untouched",
+              cfg["paths"]["catalog_root"] == "/her/own/music")
+
+        shutil.rmtree(practice_dir, ignore_errors=True)
+
+
+def test_practice_threshold_does_not_leak():
+    section("A threshold chosen while practising stays there")
+    with TempConfig():
+        cfg = state.load()
+        check("it starts holding everything", cfg["review"]["hold_below"] > 1.0)
+
+        call("POST", "/api/practice", {"on": True}, cfg)
+        call("POST", "/api/settings",
+             {"section": "review", "values": {"hold_below": 0.5}}, cfg)
+        check("she can lower it while practising",
+              cfg["review"]["hold_below"] == 0.5)
+
+        _s, payload = call("POST", "/api/practice", {"on": False}, cfg)
+        check("leaving practice restores the real one",
+              cfg["review"]["hold_below"] > 1.0, cfg["review"]["hold_below"])
+        check("and she is told it happened",
+              payload["threshold_restored"]["to"] > 1.0,
+              payload.get("threshold_restored"))
+        check("the bookkeeping does not linger in the config",
+              "hold_below_before_practice" not in cfg["review"])
+
+        call("POST", "/api/settings",
+             {"section": "review", "values": {"hold_below": 0.9}}, cfg)
+        call("POST", "/api/practice", {"on": True}, cfg)
+        _s, payload = call("POST", "/api/practice", {"on": False}, cfg)
+        check("a threshold set outside practice survives",
+              cfg["review"]["hold_below"] == 0.9, cfg["review"]["hold_below"])
+        check("and nothing is announced when nothing changed",
+              payload["threshold_restored"] is None)
+
+
+def test_onboarding_dismiss():
+    section("Dismissing the checklist")
+    with TempConfig():
+        cfg = state.load()
+        _s, status = call("GET", "/api/status", None, cfg)
+        check("it starts visible", status["onboarding_dismissed"] is False)
+        _s, payload = call("POST", "/api/onboarding", {"dismissed": True}, cfg)
+        check("it can be dismissed", payload["onboarding"]["dismissed"] is True)
+        check("that persists", state.load()["onboarding"]["dismissed"] is True)
+        _s, status = call("GET", "/api/status", None, cfg)
+        check("status reports it", status["onboarding_dismissed"] is True)
+
+
+def test_help_reaches_the_interface():
+    section("The interface offers the help")
+    html = (srv.STATIC / "app.html").read_text(encoding="utf-8")
+    from webui import help as help_content
+    for key in help_content.WORKSPACES:
+        check("a help button exists for {}".format(key),
+              'data-help="{}"'.format(key) in html)
+    check("practice mode has a banner", 'id="practicebanner"' in html)
+    check("the checklist has a home", 'id="ws-start"' in html)
+    js = (srv.STATIC / "app.js").read_text(encoding="utf-8")
+    check("the checklist is a dashboard panel too", "renderStartWidget" in js)
+    check("the dial says something when there is nothing to preview",
+          "nothing to preview against" in js)
+
+
 def main():
     print("Opus interface tests -- settings, API, server")
     print("=" * 62)
     for fn in (test_state, test_redaction, test_api_unconfigured,
                test_api_configured, test_api_run, test_api_customisation,
                test_api_browse, test_server_guards, test_server_is_local_only,
-               test_interface_files_exist):
+               test_interface_files_exist, test_help, test_first_run_steps,
+               test_practice_mode, test_practice_threshold_does_not_leak,
+               test_onboarding_dismiss, test_help_reaches_the_interface):
         fn()
 
     print("\n" + "=" * 62)

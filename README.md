@@ -335,15 +335,36 @@ the determined case.
 
 **[OVERSIGHT.md](OVERSIGHT.md)** covers all three in full.
 
+## Learning it
+
+Opus opens on a five-step checklist rather than a tour. A tour fires once, gets
+clicked away, and teaches you where the buttons are, which is not what anyone
+gets wrong. Each step ticks itself off from what is actually configured, so the
+list cannot claim you are further along than you are, and it stays in the
+sidebar under **Getting started** afterwards.
+
+Step one is **practice mode**: a switch that points the whole app at the
+fictional catalogue bundled inside it. Everything works for real — match,
+hold, stamp, inspect the ledger — and none of it touches your own files. Your
+folders are read straight past rather than overwritten, so switching back
+restores them without your having to remember what they were. A release
+threshold lowered while practising does not follow you back to real orders;
+Opus restores the one you had and says so.
+
+Every workspace carries a **?** that answers three questions in the same order:
+what this is for, what you are deciding here, and what to watch out for. The
+release threshold has its own, because it is the one control with real
+consequences.
+
 ## Tests
 
 ```bash
 python3 tests/test_connectors.py   # 84  sources, catalogues, the watched folder
 python3 tests/test_phase3.py       # 80  scoring, delivery, ledger integrity
-python3 tests/test_webui.py        # 122 settings, the API, the server's guards
+python3 tests/test_webui.py        # 183 settings, the API, guards, onboarding
 ```
 
-286 checks, no pytest required, all three run in CI on both platforms along
+347 checks, no pytest required, all three run in CI on both platforms along
 with a rebuild of the demo to prove it still matches the interface.
 
 Nothing is mocked where a real thing would do: delivery is tested against a

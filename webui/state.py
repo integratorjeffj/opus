@@ -93,6 +93,16 @@ DEFAULTS = {
     },
     "views": [],          # saved filters, each {id, name, workspace, query}
     "publisher": "",
+
+    # Practice mode points the whole app at the fictional catalogue that ships
+    # inside it. Deliberately a flag rather than a set of paths: her real
+    # folders stay exactly where they are, so turning it off restores them
+    # without her having to remember what they were.
+    "practice": False,
+
+    # Whether she has dismissed the first-run checklist. The steps themselves
+    # report from real settings, so this only hides the panel.
+    "onboarding": {"dismissed": False},
 }
 
 

@@ -344,6 +344,36 @@ td.nw{white-space:nowrap}
   margin-bottom:var(--gap)}
 .banner b{color:var(--ink)} .banner .ic{color:var(--amber);flex:0 0 auto}
 .banner .btn{margin-left:auto;flex:0 0 auto}
+.banner.practice{border-left-color:var(--verdigris)}
+.banner.practice .ic{color:var(--verdigris)}
+
+.helpbtn{
+  border:1px solid var(--rule-2);background:var(--raise);color:var(--ink-3);
+  width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;
+  line-height:1;padding:0;margin-left:9px;vertical-align:middle;flex:0 0 auto;
+}
+.helpbtn:hover{color:var(--stamp);border-color:var(--stamp)}
+.wshead h1{display:inline-flex;align-items:center}
+
+.step{
+  display:grid;grid-template-columns:26px 1fr auto;gap:14px;align-items:start;
+  background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);
+  padding:var(--pad);margin-bottom:var(--row);
+}
+.step.done{border-left:3px solid var(--verdigris)}
+.step .n{
+  width:24px;height:24px;border-radius:50%;border:1px solid var(--rule-2);
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums;
+}
+.step.done .n{background:var(--verdigris);border-color:var(--verdigris);color:#fff}
+.step h3{font-size:15px;margin:0 0 3px;font-family:var(--sans);font-weight:600}
+.step p{font-size:13.5px;color:var(--ink-2);margin:0;max-width:64ch}
+.step .go{align-self:center}
+.helpsec{margin:0 0 16px}
+.helpsec h3{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-4);margin:0 0 5px;font-weight:700}
+.helpsec p{font-size:13.5px;color:var(--ink-2);margin:0;line-height:1.6}
 
 @media (max-width:860px){
   .shell{grid-template-columns:1fr}
@@ -383,6 +413,8 @@ td.nw{white-space:nowrap}
     <div id="viewlist"></div>
 
     <div class="navlbl">Setup</div>
+    <button class="nav" data-ws="start">
+      <span class="ico" aria-hidden="true">&#9873;</span>Getting started</button>
     <button class="nav" data-ws="conn">
       <span class="ico" aria-hidden="true">&#9741;</span>Connections</button>
     <button class="nav" data-ws="settings">
@@ -404,6 +436,15 @@ td.nw{white-space:nowrap}
       </p>
 
 
+    <div class="banner practice" id="practicebanner" hidden>
+      <span class="ic" aria-hidden="true">&#9873;</span>
+      <span><b>Practice mode.</b> Opus is using its own made-up catalogue and a
+      made-up day of orders. Everything works for real &mdash; you can stamp,
+      hold, and look at the ledger &mdash; but none of it touches your own
+      files.</span>
+      <button class="btn sm" id="practiceoff">Switch back</button>
+    </div>
+
     <div class="banner" id="setupbanner" hidden>
       <span class="ic" aria-hidden="true">&#9888;</span>
       <span id="setuptext"></span>
@@ -414,7 +455,7 @@ td.nw{white-space:nowrap}
     <section class="ws" id="ws-overview">
       <div class="wshead">
         <div>
-          <h1 id="ovtitle">Overview</h1>
+          <h1 id="ovtitle">Overview</h1><button class="helpbtn" data-help="overview" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="ovsub">Nothing is written until you approve it.</p>
         </div>
         <div class="acts">
@@ -429,7 +470,7 @@ td.nw{white-space:nowrap}
     <section class="ws" id="ws-orders" hidden>
       <div class="wshead">
         <div>
-          <h1>Orders</h1>
+          <h1>Orders</h1><button class="helpbtn" data-help="orders" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="ordersblurb">&nbsp;</p>
         </div>
         <div class="acts">
@@ -440,7 +481,10 @@ td.nw{white-space:nowrap}
 
       <div class="card">
         <h2>Release threshold
-          <span class="r"><button class="btn sm quiet" id="savethreshold">Save</button></span>
+          <span class="r">
+            <button class="helpbtn" data-help="threshold"
+                    aria-label="What does this do?" title="What does this do?">?</button>
+            <button class="btn sm quiet" id="savethreshold">Save</button></span>
         </h2>
         <div class="body">
           <div class="dial">
@@ -463,7 +507,7 @@ td.nw{white-space:nowrap}
     <!-- ============ Catalogue ============ -->
     <section class="ws" id="ws-catalog" hidden>
       <div class="wshead">
-        <div><h1>Catalogue</h1>
+        <div><h1>Catalogue</h1><button class="helpbtn" data-help="catalog" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="catsub">One folder per piece, the parts inside.</p></div>
         <div class="acts"><button class="btn" id="refreshcat">Refresh</button></div>
       </div>
@@ -473,7 +517,7 @@ td.nw{white-space:nowrap}
     <!-- ============ Ledger ============ -->
     <section class="ws" id="ws-ledger" hidden>
       <div class="wshead">
-        <div><h1>Ledger</h1>
+        <div><h1>Ledger</h1><button class="helpbtn" data-help="ledger" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p>One row per file, written the moment it is issued.</p></div>
         <div class="acts">
           <button class="btn" id="verifybtn">Check the chain</button>
@@ -505,7 +549,7 @@ td.nw{white-space:nowrap}
     <!-- ============ Connections ============ -->
     <section class="ws" id="ws-conn" hidden>
       <div class="wshead">
-        <div><h1>Connections</h1>
+        <div><h1>Connections</h1><button class="helpbtn" data-help="conn" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p>Fill in the fields and press Test. Anything marked planned is a
              contract with no implementation behind it.</p></div>
       </div>
@@ -515,7 +559,7 @@ td.nw{white-space:nowrap}
     <!-- ============ Settings ============ -->
     <section class="ws" id="ws-settings" hidden>
       <div class="wshead">
-        <div><h1>Settings</h1>
+        <div><h1>Settings</h1><button class="helpbtn" data-help="settings" aria-label="What is this workspace for?" title="What is this for?">?</button>
           <p id="cfgpath">&nbsp;</p></div>
       </div>
 
@@ -565,6 +609,22 @@ td.nw{white-space:nowrap}
       </div>
     </section>
 
+    <!-- ============ Getting started ============ -->
+    <section class="ws" id="ws-start" hidden>
+      <div class="wshead">
+        <div>
+          <h1>Getting started</h1>
+          <p>Five things, in order. Each one ticks itself off when it is
+             actually done, so this list cannot tell you that you are further
+             along than you are.</p>
+        </div>
+        <div class="acts">
+          <button class="btn" id="dismissstart">Hide this from the Overview</button>
+        </div>
+      </div>
+      <div id="steplist"></div>
+    </section>
+
   </main>
 </div>
 
@@ -588,7 +648,7 @@ td.nw{white-space:nowrap}
    running the real engine. Writes are remembered for the session so the page
    behaves like the app; nothing is stamped and nothing is sent. */
 (function () {
-  var D = {"settings":{"schema":1,"paths":{"catalog_root":"~/Music/Catalogue","catalog_map":"","paypal_csv":"~/Downloads/activity.csv","out_dir":"~/Music/Licensed","portal_root":"","watch_folder":""},"connectors":{},"publisher":"Fictitious Editions","review":{"hold_below":0.8,"auto_deliver":false,"deliver_channels":[]},"dashboard":{"widgets":[{"id":"tiles","visible":true},{"id":"attention","visible":true},{"id":"queue","visible":true},{"id":"dropped","visible":true},{"id":"recent","visible":true}],"theme":"system","density":"comfortable"},"views":[]},"config_path":"nothing is saved in the demo","version":"1.0.0","status":{"version":"1.0.0","ready":true,"catalog":{"ready":true,"pieces":2,"parts":6,"root":"~/Music/Catalogue"},"export":{"ready":true,"path":"~/Downloads/activity.csv"},"out_dir":"~/Music/Licensed","issued":9,"ledger_intact":true,"hold_below":0.8,"today":""},"orders":{"orders":[{"order_ref":"5TX99001AA111111A","buyer":"First Baptist Church, Springfield","email":"office@example.org","date":"8/18/26","item":"Evening Bells - PDF Download","matched":"Evening Bells","match":"contains","files":3,"parts":["choral_score.pdf","organ.pdf","score.pdf"],"status":"ready","score":0.81,"verdict":"release","signals":[{"name":"match","value":0.8,"weight":0.45,"note":"title contains, or is contained by, a catalogue entry"},{"name":"unambiguous","value":1.0,"weight":0.2,"note":"only one catalogue entry could match"},{"name":"files","value":1.0,"weight":0.2,"note":"3 file(s) resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":[]},{"order_ref":"5TX99002BB222222B","buyer":"Maria Delgado","email":"m.delgado@example.com","date":"8/18/26","item":"Fanfare for Two Trumpets","matched":"Fanfare for Two Trumpets","match":"exact","files":3,"parts":["score.pdf","trumpet_1.pdf","trumpet_2.pdf"],"status":"ready","score":0.9,"verdict":"release","signals":[{"name":"match","value":1.0,"weight":0.45,"note":"title matched the catalogue exactly"},{"name":"unambiguous","value":1.0,"weight":0.2,"note":"only one catalogue entry could match"},{"name":"files","value":1.0,"weight":0.2,"note":"3 file(s) resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":[]},{"order_ref":"5TX99003CC333333C","buyer":"Northside High School Band","email":"band@example.edu","date":"8/19/26","item":"EVENING BELLS (score & parts)","matched":"Evening Bells","match":"contains","files":3,"parts":["choral_score.pdf","organ.pdf","score.pdf"],"status":"ready","score":0.81,"verdict":"release","signals":[{"name":"match","value":0.8,"weight":0.45,"note":"title contains, or is contained by, a catalogue entry"},{"name":"unambiguous","value":1.0,"weight":0.2,"note":"only one catalogue entry could match"},{"name":"files","value":1.0,"weight":0.2,"note":"3 file(s) resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":[]},{"order_ref":"5TX99005EE555555E","buyer":"Grace Chapel","email":"music@example.org","date":"8/19/26","item":"Processional in D","matched":"","match":"none","files":0,"parts":[],"status":"no catalog match","score":0.05,"verdict":"reject","signals":[{"name":"match","value":0.0,"weight":0.45,"note":"no catalogue entry matched"},{"name":"unambiguous","value":0.0,"weight":0.2,"note":"nothing to be ambiguous between"},{"name":"files","value":0.0,"weight":0.2,"note":"no files resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":["No catalogue entry matched this title.","The order resolves to no files."]}],"warnings":[],"hold_below":0.8,"counts":{"release":3,"hold":0,"reject":1,"total":4}},"catalog":{"catalog":[{"title":"Evening Bells","files":3,"parts":[{"name":"choral_score.pdf","pages":2},{"name":"organ.pdf","pages":2},{"name":"score.pdf","pages":3}]},{"title":"Fanfare for Two Trumpets","files":3,"parts":[{"name":"score.pdf","pages":2},{"name":"trumpet_1.pdf","pages":1},{"name":"trumpet_2.pdf","pages":1}]}],"root":"~/Music/Catalogue"},"ledger":{"ledger":[{"licensee":"First Baptist Church, Springfield","order_ref":"5TX99001AA111111A","item_title":"Evening Bells","file":"Evening_Bells_choral_score__First_Baptist_Church_Springfield.pdf","source":"choral_score.pdf","pages":"2","password":"YI1K2lyHhE4I7464","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"First Baptist Church, Springfield","order_ref":"5TX99001AA111111A","item_title":"Evening Bells","file":"Evening_Bells_organ__First_Baptist_Church_Springfield.pdf","source":"organ.pdf","pages":"2","password":"YI1K2lyHhE4I7464","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"First Baptist Church, Springfield","order_ref":"5TX99001AA111111A","item_title":"Evening Bells","file":"Evening_Bells_score__First_Baptist_Church_Springfield.pdf","source":"score.pdf","pages":"3","password":"YI1K2lyHhE4I7464","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Maria Delgado","order_ref":"5TX99002BB222222B","item_title":"Fanfare for Two Trumpets","file":"Fanfare_for_Two_Trumpets_score__Maria_Delgado.pdf","source":"score.pdf","pages":"2","password":"tTJlYefI7Nl_MacG","status":"ok","confidence":"0.900","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Maria Delgado","order_ref":"5TX99002BB222222B","item_title":"Fanfare for Two Trumpets","file":"Fanfare_for_Two_Trumpets_trumpet_1__Maria_Delgado.pdf","source":"trumpet_1.pdf","pages":"1","password":"tTJlYefI7Nl_MacG","status":"ok","confidence":"0.900","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Maria Delgado","order_ref":"5TX99002BB222222B","item_title":"Fanfare for Two Trumpets","file":"Fanfare_for_Two_Trumpets_trumpet_2__Maria_Delgado.pdf","source":"trumpet_2.pdf","pages":"1","password":"tTJlYefI7Nl_MacG","status":"ok","confidence":"0.900","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Northside High School Band","order_ref":"5TX99003CC333333C","item_title":"Evening Bells","file":"Evening_Bells_choral_score__Northside_High_School_Band.pdf","source":"choral_score.pdf","pages":"2","password":"4iLQSoUWnhr3a3_Q","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:24","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Northside High School Band","order_ref":"5TX99003CC333333C","item_title":"Evening Bells","file":"Evening_Bells_organ__Northside_High_School_Band.pdf","source":"organ.pdf","pages":"2","password":"4iLQSoUWnhr3a3_Q","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:24","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Northside High School Band","order_ref":"5TX99003CC333333C","item_title":"Evening Bells","file":"Evening_Bells_score__Northside_High_School_Band.pdf","source":"score.pdf","pages":"3","password":"4iLQSoUWnhr3a3_Q","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:24","notes":"qpdf not installed; flatten step skipped"}],"intact":true,"report":["9 row(s), 9 chained, chain intact."],"path":"~/Music/Licensed/license_ledger.csv"},"connectors":{"connectors":[{"kind":"catalog","name":"local","label":"Local folder","state":"built","description":"A folder on this machine, one subfolder per piece.","configured":true,"values":{"root":"~/Music/Catalogue"},"fields":[{"key":"root","label":"Catalogue folder","type":"folder"}]},{"kind":"catalog","name":"gdrive","label":"Google Drive folder","state":"unverified","description":"A shared Drive folder, one subfolder per piece. Uses a service account, so there is no consent screen.","configured":true,"values":{},"fields":[{"key":"key_file","label":"Service account JSON key","type":"file"},{"key":"folder_id","label":"Drive folder URL or id","type":"text"}]},{"kind":"catalog","name":"dropbox","label":"Dropbox folder","state":"planned","description":"A shared Dropbox folder, one subfolder per piece.","configured":true,"values":{},"fields":[]},{"kind":"catalog","name":"onedrive","label":"OneDrive / SharePoint","state":"planned","description":"A OneDrive or SharePoint library. Needs an Azure app registration and a tenant admin's consent.","configured":true,"values":{},"fields":[]},{"kind":"delivery","name":"portal","label":"Expiring download link","state":"built","description":"A per-order link that expires. No attachment limits, better deliverability, and download telemetry.","configured":true,"values":{"root":"~/Music/Portal","base_url":"","ttl_days":14},"fields":[{"key":"root","label":"Folder to publish into","type":"folder"},{"key":"base_url","label":"Public base URL","type":"text"},{"key":"ttl_days","label":"Link lifetime (days)","type":"number"}]},{"kind":"delivery","name":"smtp","label":"Email (SMTP)","state":"built","description":"Sends through any mail server with a username and password. Sends the portal link by default.","configured":true,"values":{"port":587},"fields":[{"key":"host","label":"Mail server","type":"text"},{"key":"port","label":"Port","type":"number"},{"key":"username","label":"Username","type":"text"},{"key":"password","label":"App password","type":"password"},{"key":"sender","label":"Send from","type":"text"},{"key":"attach","label":"Attach files instead of a link","type":"bool"}]},{"kind":"delivery","name":"gmail","label":"Gmail / Google Workspace","state":"planned","description":"Send as the publisher's own Gmail address via the API. Ordinary SMTP with an app password already works today.","configured":true,"values":{},"fields":[]},{"kind":"delivery","name":"outlook","label":"Outlook / Microsoft 365","state":"planned","description":"Send through Microsoft Graph. Needs an Azure app registration and a tenant administrator's consent; ordinary SMTP works today without either.","configured":true,"values":{},"fields":[]},{"kind":"order","name":"paypal-csv","label":"PayPal activity export","state":"built","description":"A CSV downloaded from PayPal's Activity page.","configured":true,"values":{"path":"~/Downloads/activity.csv"},"fields":[{"key":"path","label":"PayPal activity export","type":"file"}]},{"kind":"order","name":"paypal-api","label":"PayPal (live account)","state":"unverified","description":"Reads completed payments directly from PayPal's Transaction Search API.","configured":true,"values":{},"fields":[{"key":"client_id","label":"Client ID","type":"text"},{"key":"client_secret","label":"Secret","type":"password"},{"key":"sandbox","label":"Use sandbox","type":"bool"}]},{"kind":"order","name":"mailbox","label":"Mailbox receipts","state":"planned","description":"Order confirmations parsed out of a Gmail or Outlook inbox.","configured":true,"values":{},"fields":[]},{"kind":"order","name":"square","label":"Square","state":"planned","description":"Completed Square payments.","configured":true,"values":{},"fields":[]},{"kind":"order","name":"stripe","label":"Stripe","state":"planned","description":"Completed Stripe payments.","configured":true,"values":{},"fields":[]}]},"images":{"notice":"data:image/jpeg;base64,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"}};
+  var D = {"settings":{"schema":1,"paths":{"catalog_root":"~/Music/Catalogue","catalog_map":"","paypal_csv":"~/Downloads/activity.csv","out_dir":"~/Music/Licensed","portal_root":"","watch_folder":""},"connectors":{},"publisher":"Fictitious Editions","review":{"hold_below":0.8,"auto_deliver":false,"deliver_channels":[]},"dashboard":{"widgets":[{"id":"tiles","visible":true},{"id":"attention","visible":true},{"id":"queue","visible":true},{"id":"dropped","visible":true},{"id":"recent","visible":true}],"theme":"system","density":"comfortable"},"views":[]},"help":{"workspaces":{"overview":{"title":"Overview","what":"Where a working day starts. The tiles count what came in, what is ready to go out, and what is waiting on you; the panels below expand on each.","decide":"Nothing. This screen only reports. Every action lives one click away, which is on purpose -- you should never issue a licence by accident from a summary.","watch":"\u201cNeeds a person\u201d is the number that matters. If it is zero, the day is uneventful. If it is not, something did not match cleanly and Opus would rather ask than guess."},"orders":{"title":"Orders","what":"One row per completed sale in the export, matched against your catalogue. Refunds, withdrawals and payments that have not cleared never reach this list.","decide":"Whether to issue. Press Stamp and the released orders are written, locked and logged. Anything held stays exactly where it is until you look at it.","watch":"The chip after each title says how it matched. \u201cexact\u201d means the title matched your catalogue letter for letter; \u201ccontains\u201d means one is inside the other, which is how \u201cEvening Bells - PDF Download\u201d finds Evening Bells. \u201cfuzzy\u201d means it is guessing by similarity, and is worth opening before you agree with it."},"threshold":{"title":"The release threshold","what":"Every order gets a score out of one, from how the title matched, whether another piece could also have matched, whether the file count looks right, whether this buyer has ordered before, and whether there is an address to send to. The threshold is the line above which Opus stops asking.","decide":"How much you are willing to have happen without you. At 1.01 nothing clears the line and you approve everything, which is where it starts. Lower it and more goes out unseen.","watch":"Move the slider before you save it: the line underneath tells you how many more orders would go out without you seeing them. The honest way to choose a number is to run a month at the current setting, compare what would have released against what you actually approved, and only then lower it. Two things are held whatever the score \u2014 a transaction already in the ledger, and a title that more than one piece could match."},"catalog":{"title":"Catalogue","what":"What Opus believes you sell: one folder per piece, the parts inside it. It is read, never written -- your master files are not touched.","decide":"Nothing here, but it is where to look when a title will not match. Nine times in ten the folder name and the name PayPal sends have drifted apart.","watch":"A part called score.pdf usually appears in several pieces, which is why an issued file is named for the piece as well as the part and the buyer. Otherwise someone ordering two pieces gets two files they cannot tell apart."},"ledger":{"title":"Ledger","what":"One row per file, written the moment it is issued: who received it, under which order, on what date, and the password that locks it. Held orders are recorded too, with the reason.","decide":"Nothing routine. This is the record you reach for on the day a PDF turns up somewhere it should not be.","watch":"Every row is sealed against the row before it, so an edit, a deletion or a reordering breaks the chain and Check the chain will say which row and how. That is what makes it evidence rather than a list. It cannot stop somebody rewriting the whole file, so keep a backup somewhere else."},"conn":{"title":"Connections","what":"Where orders and master files come from, and how finished files reach the buyer. Fill in a card and press Test to find out whether it works now, rather than on the morning it does not.","decide":"Which sources to use. Most publishers need two: somewhere the music lives, and somewhere the orders come from.","watch":"A connector marked \u201cplanned\u201d has no implementation behind it and will say so if you try to use it. Nothing here pretends to be connected when it is not."},"settings":{"title":"Settings","what":"Folders, appearance, and whether finished files are sent automatically. All of it is kept in one file on this machine that you can open and read.","decide":"Where your catalogue is, where stamped files should go, and whether delivery happens without you.","watch":"Automatic delivery is off until you turn it on. Files are stamped and logged either way; the switch only decides whether they leave without you looking."}},"steps":[{"id":"practice","title":"Try it on the practice catalogue first","body":"Opus carries a small made-up catalogue and a made-up day of orders. Turn on practice mode and run the whole thing end to end -- match, review, stamp, look at the ledger. Nothing you do touches your own files, and you can switch back whenever you like.","action":"Turn on practice mode","workspace":"settings","done":false},{"id":"catalog","title":"Point Opus at your music","body":"One folder, with a subfolder per piece and the parts inside. Opus only reads it.","action":"Choose the folder","workspace":"settings","done":true},{"id":"export","title":"Add a PayPal export","body":"Download an activity CSV from PayPal covering the days you want to issue. Overlapping ranges are safe -- anything already in the ledger is skipped.","action":"Choose the file","workspace":"settings","done":true},{"id":"out","title":"Say where stamped files should go","body":"A folder for the finished files. The ledger lives here too, so keep it somewhere that gets backed up.","action":"Choose the folder","workspace":"settings","done":true},{"id":"review","title":"Look at a real day before issuing anything","body":"Open Orders. Every order is matched and scored, and nothing is written until you press Stamp. Opus holds everything for your approval until you decide otherwise.","action":"Open Orders","workspace":"orders","done":false}]},"config_path":"nothing is saved in the demo","version":"1.0.0","status":{"version":"1.0.0","ready":true,"catalog":{"ready":true,"pieces":2,"parts":6,"root":"~/Music/Catalogue"},"export":{"ready":true,"path":"~/Downloads/activity.csv"},"out_dir":"~/Music/Licensed","issued":9,"ledger_intact":true,"hold_below":0.8,"today":""},"orders":{"orders":[{"order_ref":"5TX99001AA111111A","buyer":"First Baptist Church, Springfield","email":"office@example.org","date":"8/18/26","item":"Evening Bells - PDF Download","matched":"Evening Bells","match":"contains","files":3,"parts":["choral_score.pdf","organ.pdf","score.pdf"],"status":"ready","score":0.81,"verdict":"release","signals":[{"name":"match","value":0.8,"weight":0.45,"note":"title contains, or is contained by, a catalogue entry"},{"name":"unambiguous","value":1.0,"weight":0.2,"note":"only one catalogue entry could match"},{"name":"files","value":1.0,"weight":0.2,"note":"3 file(s) resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":[]},{"order_ref":"5TX99002BB222222B","buyer":"Maria Delgado","email":"m.delgado@example.com","date":"8/18/26","item":"Fanfare for Two Trumpets","matched":"Fanfare for Two Trumpets","match":"exact","files":3,"parts":["score.pdf","trumpet_1.pdf","trumpet_2.pdf"],"status":"ready","score":0.9,"verdict":"release","signals":[{"name":"match","value":1.0,"weight":0.45,"note":"title matched the catalogue exactly"},{"name":"unambiguous","value":1.0,"weight":0.2,"note":"only one catalogue entry could match"},{"name":"files","value":1.0,"weight":0.2,"note":"3 file(s) resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":[]},{"order_ref":"5TX99003CC333333C","buyer":"Northside High School Band","email":"band@example.edu","date":"8/19/26","item":"EVENING BELLS (score & parts)","matched":"Evening Bells","match":"contains","files":3,"parts":["choral_score.pdf","organ.pdf","score.pdf"],"status":"ready","score":0.81,"verdict":"release","signals":[{"name":"match","value":0.8,"weight":0.45,"note":"title contains, or is contained by, a catalogue entry"},{"name":"unambiguous","value":1.0,"weight":0.2,"note":"only one catalogue entry could match"},{"name":"files","value":1.0,"weight":0.2,"note":"3 file(s) resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":[]},{"order_ref":"5TX99005EE555555E","buyer":"Grace Chapel","email":"music@example.org","date":"8/19/26","item":"Processional in D","matched":"","match":"none","files":0,"parts":[],"status":"no catalog match","score":0.05,"verdict":"reject","signals":[{"name":"match","value":0.0,"weight":0.45,"note":"no catalogue entry matched"},{"name":"unambiguous","value":0.0,"weight":0.2,"note":"nothing to be ambiguous between"},{"name":"files","value":0.0,"weight":0.2,"note":"no files resolved"},{"name":"known_buyer","value":0.0,"weight":0.1,"note":"first order from this buyer"},{"name":"contactable","value":1.0,"weight":0.05,"note":"has an email address"}],"reasons":["No catalogue entry matched this title.","The order resolves to no files."]}],"warnings":[],"hold_below":0.8,"counts":{"release":3,"hold":0,"reject":1,"total":4}},"catalog":{"catalog":[{"title":"Evening Bells","files":3,"parts":[{"name":"choral_score.pdf","pages":2},{"name":"organ.pdf","pages":2},{"name":"score.pdf","pages":3}]},{"title":"Fanfare for Two Trumpets","files":3,"parts":[{"name":"score.pdf","pages":2},{"name":"trumpet_1.pdf","pages":1},{"name":"trumpet_2.pdf","pages":1}]}],"root":"~/Music/Catalogue"},"ledger":{"ledger":[{"licensee":"First Baptist Church, Springfield","order_ref":"5TX99001AA111111A","item_title":"Evening Bells","file":"Evening_Bells_choral_score__First_Baptist_Church_Springfield.pdf","source":"choral_score.pdf","pages":"2","password":"YI1K2lyHhE4I7464","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"First Baptist Church, Springfield","order_ref":"5TX99001AA111111A","item_title":"Evening Bells","file":"Evening_Bells_organ__First_Baptist_Church_Springfield.pdf","source":"organ.pdf","pages":"2","password":"YI1K2lyHhE4I7464","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"First Baptist Church, Springfield","order_ref":"5TX99001AA111111A","item_title":"Evening Bells","file":"Evening_Bells_score__First_Baptist_Church_Springfield.pdf","source":"score.pdf","pages":"3","password":"YI1K2lyHhE4I7464","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Maria Delgado","order_ref":"5TX99002BB222222B","item_title":"Fanfare for Two Trumpets","file":"Fanfare_for_Two_Trumpets_score__Maria_Delgado.pdf","source":"score.pdf","pages":"2","password":"tTJlYefI7Nl_MacG","status":"ok","confidence":"0.900","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Maria Delgado","order_ref":"5TX99002BB222222B","item_title":"Fanfare for Two Trumpets","file":"Fanfare_for_Two_Trumpets_trumpet_1__Maria_Delgado.pdf","source":"trumpet_1.pdf","pages":"1","password":"tTJlYefI7Nl_MacG","status":"ok","confidence":"0.900","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Maria Delgado","order_ref":"5TX99002BB222222B","item_title":"Fanfare for Two Trumpets","file":"Fanfare_for_Two_Trumpets_trumpet_2__Maria_Delgado.pdf","source":"trumpet_2.pdf","pages":"1","password":"tTJlYefI7Nl_MacG","status":"ok","confidence":"0.900","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:23","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Northside High School Band","order_ref":"5TX99003CC333333C","item_title":"Evening Bells","file":"Evening_Bells_choral_score__Northside_High_School_Band.pdf","source":"choral_score.pdf","pages":"2","password":"4iLQSoUWnhr3a3_Q","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:24","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Northside High School Band","order_ref":"5TX99003CC333333C","item_title":"Evening Bells","file":"Evening_Bells_organ__Northside_High_School_Band.pdf","source":"organ.pdf","pages":"2","password":"4iLQSoUWnhr3a3_Q","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:24","notes":"qpdf not installed; flatten step skipped"},{"licensee":"Northside High School Band","order_ref":"5TX99003CC333333C","item_title":"Evening Bells","file":"Evening_Bells_score__Northside_High_School_Band.pdf","source":"score.pdf","pages":"3","password":"4iLQSoUWnhr3a3_Q","status":"ok","confidence":"0.810","decision":"release","delivered_at":"","delivery_channel":"","delivery_ref":"","stamped_at":"2026-08-21T10:28:24","notes":"qpdf not installed; flatten step skipped"}],"intact":true,"report":["9 row(s), 9 chained, chain intact."],"path":"~/Music/Licensed/license_ledger.csv"},"connectors":{"connectors":[{"kind":"catalog","name":"local","label":"Local folder","state":"built","description":"A folder on this machine, one subfolder per piece.","configured":true,"values":{"root":"~/Music/Catalogue"},"fields":[{"key":"root","label":"Catalogue folder","type":"folder"}]},{"kind":"catalog","name":"gdrive","label":"Google Drive folder","state":"unverified","description":"A shared Drive folder, one subfolder per piece. Uses a service account, so there is no consent screen.","configured":true,"values":{},"fields":[{"key":"key_file","label":"Service account JSON key","type":"file"},{"key":"folder_id","label":"Drive folder URL or id","type":"text"}]},{"kind":"catalog","name":"dropbox","label":"Dropbox folder","state":"planned","description":"A shared Dropbox folder, one subfolder per piece.","configured":true,"values":{},"fields":[]},{"kind":"catalog","name":"onedrive","label":"OneDrive / SharePoint","state":"planned","description":"A OneDrive or SharePoint library. Needs an Azure app registration and a tenant admin's consent.","configured":true,"values":{},"fields":[]},{"kind":"delivery","name":"portal","label":"Expiring download link","state":"built","description":"A per-order link that expires. No attachment limits, better deliverability, and download telemetry.","configured":true,"values":{"root":"~/Music/Portal","base_url":"","ttl_days":14},"fields":[{"key":"root","label":"Folder to publish into","type":"folder"},{"key":"base_url","label":"Public base URL","type":"text"},{"key":"ttl_days","label":"Link lifetime (days)","type":"number"}]},{"kind":"delivery","name":"smtp","label":"Email (SMTP)","state":"built","description":"Sends through any mail server with a username and password. Sends the portal link by default.","configured":true,"values":{"port":587},"fields":[{"key":"host","label":"Mail server","type":"text"},{"key":"port","label":"Port","type":"number"},{"key":"username","label":"Username","type":"text"},{"key":"password","label":"App password","type":"password"},{"key":"sender","label":"Send from","type":"text"},{"key":"attach","label":"Attach files instead of a link","type":"bool"}]},{"kind":"delivery","name":"gmail","label":"Gmail / Google Workspace","state":"planned","description":"Send as the publisher's own Gmail address via the API. Ordinary SMTP with an app password already works today.","configured":true,"values":{},"fields":[]},{"kind":"delivery","name":"outlook","label":"Outlook / Microsoft 365","state":"planned","description":"Send through Microsoft Graph. Needs an Azure app registration and a tenant administrator's consent; ordinary SMTP works today without either.","configured":true,"values":{},"fields":[]},{"kind":"order","name":"paypal-csv","label":"PayPal activity export","state":"built","description":"A CSV downloaded from PayPal's Activity page.","configured":true,"values":{"path":"~/Downloads/activity.csv"},"fields":[{"key":"path","label":"PayPal activity export","type":"file"}]},{"kind":"order","name":"paypal-api","label":"PayPal (live account)","state":"unverified","description":"Reads completed payments directly from PayPal's Transaction Search API.","configured":true,"values":{},"fields":[{"key":"client_id","label":"Client ID","type":"text"},{"key":"client_secret","label":"Secret","type":"password"},{"key":"sandbox","label":"Use sandbox","type":"bool"}]},{"kind":"order","name":"mailbox","label":"Mailbox receipts","state":"planned","description":"Order confirmations parsed out of a Gmail or Outlook inbox.","configured":true,"values":{},"fields":[]},{"kind":"order","name":"square","label":"Square","state":"planned","description":"Completed Square payments.","configured":true,"values":{},"fields":[]},{"kind":"order","name":"stripe","label":"Stripe","state":"planned","description":"Completed Stripe payments.","configured":true,"values":{},"fields":[]}]},"images":{"notice":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwQDAwQEBAQFBQQFBwsHBwYGBw4KCggLEA4RERAOEA8SFBoWEhMYEw8QFh8XGBsbHR0dERYgIh8cIhocHRz/2wBDAQUFBQcGBw0HBw0cEhASHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBz/wgARCABtA+gDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAUGAwQHAQII/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAB7+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACIoHU44p8xIZiq7VgwFV2ZnYMMFbNMiPLNoleWPIVDbnPo0ax0SPIvdl9QgMdh9IfTs+kaOvcfCjSUvnOebtr+SF0pqUKJbsssU7HP7hA5ZHKVO86+YoGxY9Mh92x6JVPLHuFXsG99kPDXTGUrPZ8pVJiQFGmp/wQVyiitfFx0CCntqRK3HWH0ifZjwoknavkr+hdNYrXlpwmPSs2iR0PNyhTNuf2Sg/NyyEBJ7m8USzZfspMzY8BSpyW2jnt3+Zo59t2L0n2DOAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFY1S4oGeAABEksj5AAAK7Gl0RskHlXLSq1oPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcJsta0Dsdc6J+bTufxG8aO4xFLrh03a5Zeie0I6uHT8fH8h0von53/RBx3Pgiyr954ZiO7cQs9YPvtvEpw6bauIdvAAAAAAAAAAAAAAAAAAAAAAAAAP/xAAsEAACAgEDAwMBCQEAAAAAAAADBAIFAQAGFQcTFBIWNSAQESQzNjdQYJAx/9oACAEBAAEFAv8AASxVGyuKBAVXKsSPUWZXZFt3sFUt2CNlvm4g5QnlFYPGq5hgTF4eYGF7Fw+lL5hoyty9MeNxGguO4cJmlmwRekZd8eutmLNhmzICfMsRdRvWHDtzc5vG4iSBuHM+zjPhY5iwwjXtsNWr0WDWB9wFAqe5bHpd1rDDF06auuDGElYpjrVJ3DiUXbdgLQn3ilp33IDcl6VE/XXsZvXQJtWjac527YStsOulBen7ULVjyqabEi2gsM23kTTcLdOEVPZOePh9xSfLF7StudZVq3eQ1XtnKxzpcWAb5qIcvuiai86mvXusOsEtiwDzxgsVdq02dy0agQzjpDTvWR6FavtE9zz1O0aBqe4GJ5ebzxilswWxcedi77gYnCzfdGOVkfykrJwFWK4ZW1C5cnqkIecKywsBIV1rmxL5zCTgrd1iSlw0JcNu2crV2wdW0JKB8bhazn3FMh/4GUcTjivXwGVQpOalaBOXGraJUKE1wKOByp05RhXrjUzTJyIyiBvMqVKc4U6kD8Sp2sUifb4VTtJpBQHmkTyNdECs3KhR6eadTJR1CgTt1SzpSVfceOsNjJ1RMZlUKyEGtWXKelVYOWiRLodCHyuJU7uKJLAyqCOrGkVxg9WqzodKmORalQzEK1ccQK4GoOkVBpHbyy6R6tZmVjV4YjW02F45o0swlTpyivVrq4crQvThUqDGOkSHqNQrEOaVOR+GT8iFKlDUaVOMYLDGfFInEkKtWEI0CMJM1CjZQrDXyWmTOeFOpAqlUqlNmoUbLmqVkctSqXS9asrLhUdEqFSSlRoyiRMJQCqVQHZpoOWPGq+mNMpGMq1abAKJFeOaVKWuFU7aaIERrU6qOqmv8ABKtUseGT7fBpYFGqUhHgUtHWExkFMosQNKkvoQsCx/lm7uCvriY3RVZhXXKNt9djZLVSyToLFb6XrxGsl7sp/Sm+tYD+we4q0jjm4q2vP/AN/s3Ur8ijfjX7UWrIJ2MN5JzfftYoGsrpesyleBadc3ejXv53qjB/dpkIV9U4int0O9q9kNFuJW/G1uRcNjjeCvk66jfD7VkvDZ3T4TObewul689fdheZN+4vUb5OyuQVAl7vBXv7J1K/ITpVpUGt+C4+6VJyFtaOljvuCxn9xbox9+9eo3ym/v09RfoPpvjHZ6cfJbcj298RxmXUnXUb4bbO266325tO9dWuCPGhvlJUzO5jfuL1G+T6iL/htmXZrk/wDJf//EABQRAQAAAAAAAAAAAAAAAAAAAID/2gAIAQMBAT8BXP8A/8QAFBEBAAAAAAAAAAAAAAAAAAAAgP/aAAgBAgEBPwFc/wD/xABCEAACAQMDAQMJBAULBQAAAAABAgMAERIEITETIkFRBRQjMkJhcYGRc6GxwRBSssLRICQzQ1BgcpDS4fA0YoOS8f/aAAgBAQAGPwL/ACBGzz7AJGEhXu91eRptO8h1GpeLMySsQ3YNRo0CvqInmjtG5Acqlx9b99SpN0hIgBxCsjD4q341JhFp+kNV5qLk337/AL6i00qR5dWWJ2W/sgG4+tRyiKNIz1LyMrMt1cgDbjjmpY4EjMk00aIxcld4sr//ACtY86x9WJHv02NjYfUVBG6RxQN0wGkD9u4HD8fI1pyCcehqGK5EXsoo9CODowdNX6jm7XUE2Pz76jZdMTppHKj0b9kb9otx3VpZJNPC3nWnaWNIyb3AvbfxvUmaRtqMkRYwjqwLeKnf6c0mn6AXUSS4JJIjIhGORNjv3WrW9Rh1xqJBySo/2qGCHpNqJY/OZJJixvc2A+6kwjiSDopI+Vy2+Ww/9a8pKEX+a6cTL7z2v9NRRyJHFC5QAuG7dwOG457jUJ82bzaZyotG90HcS3B4pU0jR/8ATEkSk4+t7qz6K5TQJJp1/WYnHH62+taBQJGz1KqyQvgW7LbXvWjtpp4jJORjNOWP9Gxv6xrSalooQuoTqZqjuI9hYG2/zqQ9WM6Y6aJwqbi5y4P/ADuryv0oNVM0ePTMWpw6fYHdeo5IZIZsdMsxurFpNvAep861s6xQ+a6QrcEnNgVBP41aUib+fSIgBK2shNua1Yyjg1KRq+OLq6b7ix5+IqBBJg80scTyJtiCdyK1b6fUyxs2ml9EZSciB6wueRTJNHCz9KORSt+9wpB+tTQRRxErJCilr+3epMV03S08gikuSCx2uR4c1oFmweDUSSRg3OYtkbn6VORKsJwNpG4T31p+vDqYJWBXPrdWLUHG+/gdr1FqJ4oPT6Z54wl9iFysaZ3jhafoKwAZsd5LW+/mpNK8cB1XVjjRhfDtAnf4YmotLMYUw1oifDLtjp5eNQxaeDtdMym6yS+2wA237uTUxWMiXU+bqkcpNoyykm/0rykNSQXXUW7J29ReK8nQO0giZJSQkhW9sfCpdHk8sMepgCZubrn3X7+O/wAa1yN09POunkdUIYOlvub4itcpELJpdKHc9oFyVPG+3FeUdR2H0kWoUEMTlYqnH1qFsEvJrG03yBYX+6op9T6dxDO9wSL2kAA++pIpotO8+KumBIXdwpB+tavTagR9SAr2o72IIqOL0LQvP0bIGJXnfL1e7itPqdRFD5vOshtHfIYgn92otRqemI/M5JQkZNvZ2P8AGp1jSJ18nRgzdRjlIccjbwrUm0Q00T4DnI7A/nWrfBPQ6pYB8CV/1VMNTGkaIJCIyGDkL3g+q17UiTachJI8wwjdQnu7XPxFa46eOEw6FbyZk3fs5beG1SFJQR59EsS7iwKA2Pu3oacxIdV1miLIjMtgoa+I39oVp4Y4I4pXSRm6wYeqQNhzvegeitvNsv8Az/qVqMIRtqCkklnkC9hT6o3pF08SSMIRKxRXkVib7Cw245NQzmNlMjxdhiQVuw8K82nSOK5YCNgwbbgg8N8qlg0yQYxQCYmS++52+6tRqUhj82iSNgpvkxdRb4bmpdNJ0vOR0ZEaIkAgyAWNJptQkfVj1SJlGWAsyE1o/OAjpqIGxIY53CFtz77VqZD6RCmnWKLtGzOKWDzcDUSShEkdHRCMSSbHfurXdc3kXUuNjcDYcV5PVlikOpiIiJY3yC3GXxtQ6ajoiBXc94dvZrXSm0s0uq83jsHOAwDeqPyqLTrp1j1Ls/blVlUqttwOfarT6cLlqG6sjsVeW1pCLdnev6GOFE06zyLMSGHrbe71ea1URKX6HVWSEOtu0BbfnnkV5MsxAbU2NjyMGqyJBIXjkdMA9gVF7ZcN8qmjhjQhumNOx9skjL6X/sIqeDtWliw7GlIMYvxYWFMzRXLFmNyd8hY/dTNGHLkY5O5c28N6PY5m6/Pt+NElGDdQy5K5BDEWO9JGsboqAr2JGXYm5HO4ph0rZFW7LEYlRYW8Nqk0qp6KS+W+7X53rPBvZuuZxbHi44PFKZVuQrJz3NzSsYjtjcZmzY8XHfXVCNfIuFzOIY8kLxUERivHDGYlBPskWIqRGR3zAF3kZiAOLHuopg5JfqdQyNnl45c0Y4FIUsXN2J3PxqFAjKIlwUpIynHwuKLQx4dhY9uMV4/Gi8yMSydNsXK5L4G3NdTBuVbHM4kjgkcd1CZYzcMXVczipPJC8ChLKr9QLhdJCvZ8Nq0LYRLpdECYwOb2tb4VEZBfpP1F34P/AA1EZFuYjku/fYj8606Yunm64RlJGUgeFxSSRJgUj6QxJtj3bVLM3WDTWzwmZQ21uAaIMRVGQRsiOVVlHFwK1Ms3bWR0ZVzNrKoAyHfxTSdM3Z+oRkbZWsdvgakTpuyunT7cjGy+A32o6aVepERiQxvf51Ln1ZTIhiLSysxCnuHhTdWPLKPpHf2b3otg5cujlmkJJK8V12jOZIYjI4sRwSODWnVU207F03OxN/4ml08jGYY4kvvlWUavkqkR5yMwT4A8UkMql36HRY5sRa3ax8L1lIlziE5PANx99SvEkZmkKFs2IvjxYj1T76ZpwDIZ/OAFcticceTzSKEdcAVukjKbE3IuO6nXo2DYcEi2Pq28LV6LqC8nVPpG7TWtv41E8nUDxXxaOQoRfnilRY9lkE1yxJL+JPfRHTJUqyBWckKp5AHdU0WLFZoxE93JJUU0xjbJmDsMzixHFxx3V1+m2Yk6oGZxD+NuKb0V1IdcWYkWb1hb5Uwwdssbl5GY9k3Aue6pZlHpJbZHxtSuEfsSdVV6jYq3iBWnQR9nT3wBPjcH8aBCPsMReRjZbg4/DamkljJLgBwHID/4h31KYxbqvm3x/wCCmmZGyZg5AcgFhwbeO1dTpk7sQpclQTzZeO+s4lbILguTlsV8BfimkljN2ADgOQHH/cO+jNgcy6yesbZLwbUxKMGaTq5K5DBrWuD3bVG0SWaNWUG5PJua/of6/wA55/rPGmbF1cuZM0kKm5FjuPhSKImQKvT7Dst18DbmlgZPRKVIUbWxNx+FCZEbJSWUFyVUnmw4FPqJrmJoRFirlTyb3t3b1qF6Iw1AAde4gC1MMHYuVJZ5GZuybjc11ynpM1kvfvAsPxrFImxCGMBnY4g828Ka8Rs0axkZHhePmPGmQo5LMH6hkbPIcHLmnjgUhXYubsTcn40G08fbjUiMPIxC/DwqQME6s0jSvhxc+FSBkPpJOqSGIIe1rg91KmDgqxcOJGzueTlzUUaI6CG+BSRgwvyL06CEYPEICvdgL7feabJZHLJ0yXlYnG97c+6ojIt+k2a/G1vzqGREfKG4jykY4DwF+6tL04bealjFuezlzRALbkt2mv8A5WmGqnMLHjKNt/urMahin6whe34VJ5nqBL07ZWBFv5Z1GqkwjBtxe5qPU6d84X4P8q2rlMV+C0bWPztQfzvsH2um1vrauppZ0lTxU8fpGkGp/nJOPTKMDf6V0dVqelJ4Mjfw/vP5O/xP+VeTXNsnIjUHvJe1azVxKANQq5Kv6wvv99DQ+b6sarPDAoOfrWnibTzyNqDinTAO/wBahjfJ9RObRwx7s1SaGSN9PrYxfpSW3HiCOa8z1Mc8clwLlRjv33vxSaWWHUxCT1ZZExB9/jagnlKCd9MzbPFbstUep0UE/mUYY4+3sdzUrwRaqR4/6pY7sff8KkMGaPH6yPzQ8nQRyanWHlI7WX4k02lbS6wapDZoxFkR9P0af7cfsmgdWV839Jnnxa5p5Ig3muBEh7vd86h01nl1c/qQx+sf4VPoyjwayD14ZOfiPGh9sv7NaL7L96oOoHeWY4RxJ6zmk0Uuk1Gn1DKWtJa1h7wf7y+T/wDE/wCVeR/KAzGojmj9okH0luO79Gk10BxmcZfNe+kmcW6GlR0X3yc/s2oyDEtCQqZbgdn/AHrR+UnmRHQquKJyPr760oPGUP41o/sv3qX7VPzpvsJv3q8pnv7H51rPsvzrXKTlvNv86Njj2u77P9Gn+3H7JqJtRD6Ziw6gY3G9ReTGl6ulLGMBvZ94rUTLiZEZkXMXAFrVD5TeZQ57JREsCMbeND7Zf2a0X2X71aDVhyHRsPz/ACro61RJNpVyjn9rfax/tP8A/8QAKRABAAICAgEEAQMFAQAAAAAAAREhADFBUWFxgZHwsRChwSBQYJDR8f/aAAgBAQABPyH/AECSPMiTnyZOKpLTxVmVrmDeVhdhwiJjQbRjPoeZcyAmK0YcWGjIrYRPUDpz4yR/0KYwHU9pxAME2oW7MlKsrUxP2fTAwQnKC+17EvkONneRY1BQzGwIsbGN3kJOAhmiYf8AzJkKNSboxAeUvWLAtiYoCCYtg1PMZDSb8ThtPwecaZgjkStQjcuFYML0DPyaSh3zks0fKQajn0Y51yFpMCVlVLoqsOiQ1gwoVTtjGo4ZsHD4piaNX4WKYlFG5jd4c2hBAmUInganmM8/ipRiuXE8YgJMlduTzD04wdLoAHQg5J3xlolQtGgBK0+sTGM9bASkDO0vQjEGtuSWTyabjXC8qpeoVNUc3enCoSDbRpoxv+GSQdXAG4E+fjEahhjBuBKCGiZznEobE4Fe6PGNCu1AyRro6nI+aFrmwTsO7wK1XYxMjbtP7ZUuJlcKx1GcC4+S+KDUZmOMmQ0bsgRpLkcVjDo50RS8G8E2HpSVYs2BRyYhHOLv52Jya87wTLOSsYLHsT+MlmIUbQG6epWsOwBmSp0EPHp72WT2UnZQmfRwYZ01PGx4FrbGVoTUSSbaLmPLkgmXmomZ24BjiHxmbpBaJdsHF4vx4Xh5KYpyzcmvNCJeSZyNTk3EHqRaOb1gtxpuAp6q5HkJ2dYTG9oo95vAPpCXF1G+es4cfFOimxIcpBx1UFG023O6yM+E2z90yKuJ5zlfnulgO0mDydYxwtqHO8HbN9Y6tWcuOvBkhST+YSVfNvgyH7W6iiylKBInxk4Nlwq6Aq+xrA8iIm8I1otmXEm1xHtQ4BTucf8AhrkypCPW8iqcKVjRC29ZXa1sz9ffPErjOZIgViqI8466v+AG7n8FOXmowU8MhknXMZcV9fEyJeE2rGNVRkkddefHTljE1lYJ0AZesHMKr+Way/kcksSLsGxOyIhkwrr72EPNBWQji8KBjyxa8zStYl5WH1ExMibkvID7RQaJaPHnEhXozkx2Ba15yB39GAAZ9TKEiiUUWMgcCVW41OcgHU5sWgQ6h3lMvzhHAOXLoM2z8hFDPQ2lxxh2yFdTgkyA7XhCRh8VkPGzUokCQqfwybCnjVJe3rp/sRCyavTBSrlbt6lPOQTbqhHX5AYHQcXDoqYL1im2h30j+BWsVU8X8EAySERrIAg0ouSmwtOUD5REF2OgisdCESt5J2VneGFzrehOWQhs4MduXWKI17MqKAEa29EYN9ZBuOwOWkFlsOXJJAVqAkd0c4UCtuJkozBsjnLUBJCIgssFb1kthwF3MqcarqSFtpKeHAyJgKkkA4iWUOzJXUIhbvBrlmaf2MkhacGGSuBZqwkZdHLklQSzky2FOFe8hvghEAL9Y6yXSK0QiT8LJGg2CF+AsJIqbHCxKUb6xn5pCjsMoYlvduaBcYPgkBqsBMijBARDBrI9ooygSSIMrnLqjWJM2tFpPeNmidrzO0SGujrIYaokDvafO8POTwGmWj4xBUmZ6QHrNzvABspreq8TilQNHyYyEFpwY3Is2gBfOQvDtoczO/fGzaZakXEpVcZohNoQBJqjiMSLTXq5fAyCm9VZyASwMXNcRVnM4mV5cMaioEwpLJ05TQR65oNuxi4FrzOwS8OGsSM4kRDZHRjraIDaYyvXBi36v7TBfGUT2NIgSs6W8aoekZApZRCKyp8gTBnBZusgQ0yQ0QTQorHO3UhgySBJjI9u3OiCvfJrrmQlZMEq8cuWN5sIRkd0t5OnmRgRQtSNYSSgXmgGI+cmkkvWYhPwMrBrjXTY0XGQ/tFrZowmWjl7wX8ejrTCijrGQTJe0AwTzjHlxFQixExXnE9UTN4hmgKxSrDMgpZbVBlvPF9d9PGsZMDopIEkEFarN7gbGZWVJVvt7wlEosIGnpGX0Bklk7Iy6OXF9kMpDiQlArxkyVQ3ABHFHGNtIoFDJMDxrGD12HeSPRZSAFKfSu3KYYUVm3Z3wVt5y2CVSJFiCFbyVBkztMqclfssPuy25QxjIdzi8xLgIMrVgoAAjKgNYxYBUQosbFN4QepGRzBZReHCp5psqEPtOSnBDRVjpIyVl2mpPdSyOkYSqQkoIceMaQuzUvVvfOL6Dkl1nnjxx/q0HTqpSPTR9sFLHI/LKgR7CJjYdP8AXE8SUkmgDeETLJkeGv6jk3R7ABBzilIGb/Yx+TMMqXT1+msh3RfhJeH0RJ3R2NEwQCaf8m+y6wwSf7d/gr7ZDi/USs+lg+MLLFKx68yFMxTvDIiiesLmOcL+YDy5Oqhkc0gmGxrqQ0yGccVaWoOzuMAxPZXRt6niMVoooYJNLdi7w0NTRXMBocrgxwccgOmtmcUnmom0BWTeSpx9TXn9dIyvrDSwDsOd+vu/nHE2g4+RlAeXrLeVQKdgoLPnPuuufV8simeKNDU+p84R42DqWMHf+S/bdYVJwam1SY9nX6HD1uO8j4R8ZHWNwRNL2B7nG5AooPGTlOPBKvCwbXsRgBBQI80yi8/9Mcr9ox9X3ihDRPtlwPEPxyeRBT355MvG/YNff9ZKjIEJZBLj9sZMXK4TCca1i6TOAHEJxlrX29gLz7rrn3fLL9aIeS08JicHaKhZ2evj+5//2gAMAwEAAgADAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAECMOFFCOKIBAHOMDKCMACJOBIPBPKMENCNHPJOAMJCNKDCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCAAAAAAACCCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFPMGLNKKKGFFCAAAAAAAAAAAAAAAAAAAAAAAAAP/xAAUEQEAAAAAAAAAAAAAAAAAAACA/9oACAEDAQE/EFz/AP/EABQRAQAAAAAAAAAAAAAAAAAAAID/2gAIAQIBAT8QXP8A/8QAKRABAQEBAQEBAAEEAQIHAAAAAREhADFBUWEQIHGBYEBQgJCRocHR8f/aAAgBAQABPxD/AMRF/wCrv91/uv8AxUiXHrFRUh/DTo/yz8hipUAID4IKzasjz8EW+o/ezCOHeGoMCNMJosnnTXigCwoGOKY20IdeiwIihGPOMIdQSdKmnYM5cfZwgcDEGCWixV5Az2VCAIsLVXFj22hLkRBH/V8Iec1YUZBE42IjSiPGSNKN4tDOaE1q8HWed2GuFYx1I5QPtIGjAAECs/XC87oXt9uk1BAui99fsRkGjFDiyyYGCiaSGOhBme8EiLhAmpEEIh3mdMQFygQiM0fNzSh/p0m/6Edf45U2q1YopME8I5u5M4hqsAVGO07eB5XQIb3/AKV98WFGdP8AJafQW2TkUaJejgRCE/y4wzWc1BYM2T3AivCTL7FDynmRUW6POdwKAUmCjCKixDD0uAr8083zmcbO1aKwDR0q4Ce+gjEX6MnNEmfpUgHg+/CJBUWkEQZgBKvAQgGJZFHiTtz6U1bqKqLadbbkq6U+zl0HwPOKgCFwFDAwfo+rKf0JoV+KT3ep7dn83Kwu00Wh6jc5GnBQQI/R0ExOpCzrykV/OEg5MlZN1G6FJnCFMi1BlpvhRPXE8Nz18RQJRRPzlLrDYvw3gjvGmUEPbLVUBVb9LUHgZdBEAJLK1EwJIBmwumOb6RCApaAloI/6GrafDo+sQxRvXSmYV+vHTZXq2JdBQQFAckrgeRyge5ihB4halSUxAI/kZHem3Z8hO5uKG30axXA3kKbcsnmvU1kCUCNjC0mBwq5jMYVYUwcFxIiTKlgW2oA6jjng1K98CIZeQ9EpXa1Yd1g5CIihuuMFyzIuDJoAsg+kTgnvBPIxEKkBeX4sSkuTAEJFU+fVezT6ql5JzP8AZ1CZpZu7RFD9Vy85B83ehqQG8CPOlRmUPeBwISQC87cYaiUVgE0/KAbECLuAKl0MGmDVkym8dJGAEdWzUGE18AL9+Y81Yl3r6gOMnSVWzeEBI+C4pFlsKakve8ug7UwRFFQBtwmEFdAS/Y8D1guOlwJ63/IwkEUpl5ZAg+oU3Wovzjx8yij8InJYrfSMDaU64yybM/8AZAm6dYRX0Cq0cEgoTlUQwb652JskaEs+EgCyz4YKkfRrT4o/ngj8kb+72BhaH6KNUxVxT8V6tv8ALyIjrXmsMVgSI4yfIgKDqxJpaArpwJNAQRoJASKh2zvwQ/MAiHFX8HUqNuBMZSQloU4gTDTyou0GOUH5zN+xwKXG2GMdV5gK4Jge+UOMpxv/AGGPQTZUR3/DxFmzFALbCHq3eLtZwKupITw9I8mdk6tWcKmIVvCl/l15PXn/AKR5xGDAuAWAkGj50GOM5qUoyjKydfYjEUElkFmW2tfEOjyj62lTf5w73PjjGI8rFR9rDl5qJOctHgF9Pk5QXCQgZ3ZErj2HC3ipxQh7aA1CK8iDaciAcpFp6uULZGuT6Sa96uGpiP3PCkUkinG/2GErsSutfeJJPorSV6Col33rwL+PQ7B8Ot296KADBAkCxDFf3ouUOYpzbRQ1modte9AOZ6Uh8JXgFd4kCbkNH3hSzGr5JDgRVGDSl98kC+HcEabysmWUSuO54/t9DtgxDtEVhcTUPpeXOaUK6QJBCPTXnwhD4IGjJ405LMosZ1rIkoZzjoCMjCdYj0dZ6Gej1xkAJQpQevXNRzBEmiM38EXJPPIijVg70W3eOkjkFGd+hhYVYdjRgCJARICAwIR5F4FOlX1aE8QBM6A6brksYYh/wEJrwtnUraMmy54c3b6q0ILqEU056vKDAwW79ENC+DM5DotAkD2AyvPwOaj2T5Cj8VfWRzOgpDbGqe1DUfROmMKLDSLLBBWABzeR3ngSpmiFycmxFWZo0EjijzB+zh9KUIKikGUOysCVhKyPk/nftQksJmQNJAPAOFfFCmJYMGTACGdZ10cDzKBQ3zcO9QadJradCiX3vPKSXV+xJRqt9eMEdLH4AoRg2SvR2DjOoECig/bzCzhmKtTCC8l+8Agiqf7S5oQ/yPWcSS6gKyjlG88kFh4KwWyBCectIDA6k5UwLmeZzsbysniuEMIZzA6u6LQsA+iBearAHOhRUioYWVxGVMHYYNfwPHwOWs4gFTOgwLjPM4z4fC8vREqGAthyrS1kIDUUECejeT2kELTRflqu7yjv5/5p9+f/AJdXrwX3AgdDUMu8wQ4ukJK6A3U9VKyVQiEohg+ZPOIb0G3NdDQ+ErxzRYJg4HNLazmsWfJk1whBjwfemYCsPfY9C/VGvOouznvxMJJG13hykJpApjPwr+9JOKZ4ZGJIw/OC5yxKBe4CCCni3BiBjF2JYLvvL5/LBoBbhpO++dRhijcoCyChYsLOdaTRoBAhbPv631DcO4jdlRCAeBB0s4r5m0qiUPw5bAoT3CZ+j6+l7adWOhWkCCSb+tqtirBFqDBPGm974tAzi4BBCPw59c46HW+lTUySHJuyEhSBagXBgwA/8rTOuAYKLkRmp9P3jS5RAPKCPj94v0owns2X4fn98QWIoiIVMf8AQrhykpIKigoERER8T+5n/Ql4KMQH49pSoogYlfb+eny1v+Ier+EP6LCvh+dnnMp/cIHPvSWYQbYASESimP5zkUKP/JvZ942FQiMIP2YHzgFZhHEBgkv6pfbyMrXMGIqAy2yaXsdIUgVYQiUgFuPE7yzCwgihCge+x4DuF0UIQoixvuYxyjB0sYH4asoDSk4YJOK0agbx/wCQb0t/7RT1FFjaQo+nGfak2WxFSlTw+cMhEqGoLIdQFPVnJBKAVIqRIlGiaGVFTPhGmSNIWfY50aYPNQKpnQxkR+/0G307IriAj0EPq/A1ZN47hmIjGvjgn0D9cbRAwd2IY6HqWMGmEOWZ9MoPxmnebvyn8uThxdpiBAAgqhj95d91RsqCxDRGhl/5Lzq2NyLdb0Gk/VvHO9UIwK/mVFP/AJ9JAaMPd80Z/H78dDM5fyT8JNbxQ6A+goCg9/xx7VREDYR9Ow2B7yijVRf6TN3qmXZeX85A2VT/AB/93J91eJ1X8/OA7w/hFX8RvHh/QYgeudwA9QDFDN4MpkhS/Q1tKRfu9Y5mbMAl4fE1XeWPMRBTQ0B+6H9M/wD7hwJnDDoYNVHz7fk4cntkZGGNJ8WKLv8A3P8A/9k="}};
   var mem = JSON.parse(JSON.stringify(D.settings));
   var views = [];
   var ran = false;
@@ -629,6 +689,15 @@ td.nw{white-space:nowrap}
       if (path === "/api/catalog") { return reply(D.catalog); }
       if (path === "/api/connectors") { return reply(D.connectors); }
       if (path === "/api/views") { return reply({views: views}); }
+      if (path === "/api/help") {
+        // The checklist reflects what the demo has actually done, so pressing
+        // Stamp ticks the last step here exactly as it would in the app.
+        var h = copy(D.help);
+        h.steps.forEach(function (st) {
+          if (st.id === "review") { st.done = ran; }
+        });
+        return reply(h);
+      }
       if (path === "/api/ledger") {
         if (!ran) {
           return reply({ledger: [], intact: null,
@@ -687,6 +756,15 @@ td.nw{white-space:nowrap}
                       message: "In the app this really reaches " + c.label +
                                " and reports what it found. The demo has no " +
                                "network."});
+      }
+      if (path === "/api/practice") {
+        // There is nothing to switch to: the demo is made-up data already.
+        return Promise.reject(new Error(
+          "This whole page is the practice catalogue. In the app this switch " +
+          "points Opus at it without touching your own files."));
+      }
+      if (path === "/api/onboarding") {
+        return reply({onboarding: {dismissed: !!body.dismissed}, saved: true});
       }
       if (path === "/api/browse") {
         return reply({path: "~/Music", parent: "", home: "~", entries: [
@@ -800,10 +878,12 @@ td.nw{white-space:nowrap}
   var S = {
     settings: null, status: null, orders: [], counts: {}, ledger: [],
     ledgerIntact: null, connectors: [], views: [], catalog: [],
-    sort: {key: "stamped_at", dir: -1}, arranging: false, holdBelow: 1.01
+    sort: {key: "stamped_at", dir: -1}, arranging: false, holdBelow: 1.01,
+    help: null, steps: [], practice: false
   };
 
-  var WS = ["overview", "orders", "catalog", "ledger", "conn", "settings"];
+  var WS = ["overview", "orders", "catalog", "ledger", "conn", "settings",
+          "start"];
 
   /* ---------------- navigation ---------------- */
   function show(name, opts) {
@@ -852,6 +932,7 @@ td.nw{white-space:nowrap}
 
   /* ---------------- widgets ---------------- */
   var WIDGETS = {
+    start: {name: "Getting started", render: renderStartWidget},
     tiles: {name: "Summary", render: renderTiles},
     attention: {name: "Needs a person", render: renderAttention},
     queue: {name: "Order queue", render: renderQueuePreview},
@@ -864,9 +945,14 @@ td.nw{white-space:nowrap}
     var list = (d.widgets || []).filter(function (w) { return WIDGETS[w.id]; });
     Object.keys(WIDGETS).forEach(function (id) {
       if (!list.some(function (w) { return w.id === id; })) {
-        list.push({id: id, visible: true});
+        // Getting started leads until dismissed; anything new is appended.
+        if (id === "start") { list.unshift({id: id, visible: true}); }
+        else { list.push({id: id, visible: true}); }
       }
     });
+    if (S.status && S.status.onboarding_dismissed) {
+      list = list.filter(function (w) { return w.id !== "start"; });
+    }
     return list;
   }
 
@@ -1129,7 +1215,13 @@ td.nw{white-space:nowrap}
   }
 
   function previewThreshold(v) {
-    if (!S.orders.length) { return; }
+    if (!S.orders.length) {
+      // Silently doing nothing here reads as a broken control. Say why.
+      $("dialout").innerHTML = "";
+      $("dialnote").textContent =
+        "No orders loaded yet, so there is nothing to preview against.";
+      return;
+    }
     API.post("/api/threshold-preview", {hold_below: v}).then(function (data) {
       var c = data.counts || {};
       $("dialout").innerHTML =
@@ -1539,7 +1631,11 @@ td.nw{white-space:nowrap}
       if (!d.catalog.ready) { missing.push("a catalogue folder"); }
       if (!d.export.ready) { missing.push("a PayPal export"); }
       if (!d.out_dir) { missing.push("somewhere to put stamped files"); }
-      $("setupbanner").hidden = !missing.length;
+      S.practice = !!d.practice;
+      $("practicebanner").hidden = !d.practice;
+      // In practice mode the setup prompt would be nagging about folders she
+      // is deliberately not using yet.
+      $("setupbanner").hidden = !missing.length || d.practice;
       if (missing.length) {
         $("setuptext").innerHTML = "<b>Not set up yet.</b> Opus still needs " +
           esc(missing.join(", ")) + ".";
@@ -1630,6 +1726,97 @@ td.nw{white-space:nowrap}
     }).then(function () { $("runbtn").disabled = false; });
   }
 
+  /* ---------------- help ----------------
+     Reachable from every workspace, never modal. It answers the three
+     questions people actually have rather than describing the layout. */
+  function openHelp(key) {
+    var h = S.help && S.help.workspaces && S.help.workspaces[key];
+    if (!h) { return toast("No help for that yet.", true); }
+    openDrawer(h.title, "What this is for", [
+      ["What it is", h.what],
+      ["What you decide here", h.decide],
+      ["Worth knowing", h.watch]
+    ].map(function (pair) {
+      return '<div class="helpsec"><h3>' + esc(pair[0]) + "</h3><p>" +
+        esc(pair[1]) + "</p></div>";
+    }).join(""));
+  }
+
+  /* ---------------- first run ----------------
+     A checklist, not a tour. Every step reports from real settings, so it can
+     never claim she is further along than she is. */
+  function stepButton(step, label) {
+    var go = el("button", "btn sm go", esc(label || step.action));
+    go.addEventListener("click", function () {
+      if (step.id === "practice") { setPractice(true); return; }
+      show(step.workspace || "settings");
+    });
+    return go;
+  }
+
+  function renderSteps() {
+    var host = $("steplist");
+    if (!host) { return; }
+    host.innerHTML = "";
+    (S.steps || []).forEach(function (step, i) {
+      var row = el("div", "step" + (step.done ? " done" : ""),
+        '<span class="n">' + (step.done ? "&#10003;" : (i + 1)) + "</span>" +
+        "<span><h3>" + esc(step.title) + "</h3><p>" + esc(step.body) +
+        "</p></span>");
+      row.appendChild(stepButton(step, step.done ? "Revisit" : step.action));
+      host.appendChild(row);
+    });
+  }
+
+  function renderStartWidget(host) {
+    var left = (S.steps || []).filter(function (x) { return !x.done; });
+    if (!left.length) {
+      host.innerHTML = '<div class="body"><p>All set up. Getting started is ' +
+        "still in the sidebar if you want to reread any of it.</p></div>";
+      return;
+    }
+    var body = el("div", "body");
+    body.appendChild(el("p", null,
+      "<b>" + left.length + " thing" + (left.length === 1 ? "" : "s") +
+      " left to set up.</b> " + esc(left[0].body)));
+    body.appendChild(stepButton(left[0]));
+    var all = el("button", "btn sm", "See all steps");
+    all.style.marginLeft = "8px";
+    all.addEventListener("click", function () { show("start"); });
+    body.appendChild(all);
+    host.innerHTML = "";
+    host.appendChild(body);
+  }
+
+  /* ---------------- practice mode ---------------- */
+  function setPractice(on) {
+    return API.post("/api/practice", {on: on}).then(function (d) {
+      S.practice = d.practice;
+      $("practicebanner").hidden = !d.practice;
+      if (d.threshold_restored) {
+        toast("Practice mode off. The release threshold is back at " +
+              d.threshold_restored.to.toFixed(2) +
+              " — the one you set while practising does not carry over.");
+      } else {
+        toast(d.practice
+          ? "Practice mode on. Using the made-up catalogue."
+          : "Practice mode off. Back to your own folders.");
+      }
+      S.catalog = [];
+      S.connectors = [];
+      return refreshStatus().then(loadHelp).then(loadOrders).then(loadLedger);
+    }).catch(fail);
+  }
+
+  function loadHelp() {
+    return API.get("/api/help").then(function (d) {
+      S.help = d;
+      S.steps = d.steps || [];
+      renderSteps();
+      renderWidgets();
+    }).catch(function () { /* help is never worth an error */ });
+  }
+
   /* ---------------- wiring ---------------- */
   function wire() {
     document.querySelectorAll(".nav[data-ws]").forEach(function (b) {
@@ -1641,6 +1828,17 @@ td.nw{white-space:nowrap}
       S.arranging = !S.arranging;
       $("ov-arrange").textContent = S.arranging ? "Done" : "Arrange";
       renderWidgets();
+    });
+    document.querySelectorAll("[data-help]").forEach(function (b) {
+      b.addEventListener("click", function () { openHelp(b.dataset.help); });
+    });
+    $("practiceoff").addEventListener("click", function () { setPractice(false); });
+    $("dismissstart").addEventListener("click", function () {
+      API.post("/api/onboarding", {dismissed: true}).then(function () {
+        if (S.status) { S.status.onboarding_dismissed = true; }
+        renderWidgets();
+        toast("Hidden. It is still in the sidebar.");
+      }).catch(fail);
     });
     $("refreshorders").addEventListener("click", loadOrders);
     $("refreshcat").addEventListener("click", loadCatalog);
@@ -1713,6 +1911,8 @@ td.nw{white-space:nowrap}
       S.views = d.views || [];
       renderViews();
       return refreshStatus();
+    }).then(function () {
+      return loadHelp();
     }).then(function () {
       return loadOrders();
     }).then(function () {

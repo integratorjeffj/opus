@@ -336,6 +336,36 @@ td.nw{white-space:nowrap}
   margin-bottom:var(--gap)}
 .banner b{color:var(--ink)} .banner .ic{color:var(--amber);flex:0 0 auto}
 .banner .btn{margin-left:auto;flex:0 0 auto}
+.banner.practice{border-left-color:var(--verdigris)}
+.banner.practice .ic{color:var(--verdigris)}
+
+.helpbtn{
+  border:1px solid var(--rule-2);background:var(--raise);color:var(--ink-3);
+  width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;
+  line-height:1;padding:0;margin-left:9px;vertical-align:middle;flex:0 0 auto;
+}
+.helpbtn:hover{color:var(--stamp);border-color:var(--stamp)}
+.wshead h1{display:inline-flex;align-items:center}
+
+.step{
+  display:grid;grid-template-columns:26px 1fr auto;gap:14px;align-items:start;
+  background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);
+  padding:var(--pad);margin-bottom:var(--row);
+}
+.step.done{border-left:3px solid var(--verdigris)}
+.step .n{
+  width:24px;height:24px;border-radius:50%;border:1px solid var(--rule-2);
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums;
+}
+.step.done .n{background:var(--verdigris);border-color:var(--verdigris);color:#fff}
+.step h3{font-size:15px;margin:0 0 3px;font-family:var(--sans);font-weight:600}
+.step p{font-size:13.5px;color:var(--ink-2);margin:0;max-width:64ch}
+.step .go{align-self:center}
+.helpsec{margin:0 0 16px}
+.helpsec h3{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-4);margin:0 0 5px;font-weight:700}
+.helpsec p{font-size:13.5px;color:var(--ink-2);margin:0;line-height:1.6}
 
 @media (max-width:860px){
   .shell{grid-template-columns:1fr}
