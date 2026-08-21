@@ -42,9 +42,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pypdf reportlab pikepdf cryptography Pillow pyinstaller
-          # pypdfium2 renders the demo's page crop. Build-time only --
-          # the app itself never needs it.
-          python -m pip install pypdfium2
 
       - name: Verify the engine before packaging it
         shell: bash
@@ -84,7 +81,10 @@ jobs:
         run: |
           # docs/demo is generated from webui/static. Regenerating it must be a
           # no-op; if it is not, the interface changed and the demo was not
-          # rebuilt, which is how the two drifted apart last time.
+          # rebuilt, which is how the two drifted apart last time. The page
+          # crop is read from its committed cache rather than re-rendered,
+          # because PDF rendering differs byte-for-byte between platforms and
+          # that difference means nothing.
           python packaging/build_demo.py
           if ! git diff --quiet -- docs/demo/index.html; then
             echo "::error title=Demo is stale::webui/static changed without regenerating docs/demo. Run: python3 packaging/build_demo.py"

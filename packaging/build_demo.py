@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Build the public demo out of the application's own interface.
 
-    pip3 install Pillow pypdfium2
-    python3 packaging/build_demo.py
+    python3 packaging/build_demo.py            # normal rebuild
+    python3 packaging/build_demo.py --render  # also re-render the page crop
 
-Pillow and pypdfium2 are needed only to render the page crop shown in the
-drawer; the application itself never imports either.
+The page crop shown in the drawer is cached in packaging/demo_notice.b64 and
+committed, because PDF rendering is not byte-identical across platforms. Only
+--render needs Pillow and pypdfium2; the application never imports either.
 
 docs/demo/index.html is generated, never hand-edited. It inlines the real
 app.html, app.css and app.js from webui/static and prepends a mock adapter that
@@ -52,6 +53,29 @@ sys.path.insert(0, str(ROOT))
 # images
 # ---------------------------------------------------------------------------
 
+NOTICE_CACHE = Path(__file__).resolve().parent / "demo_notice.b64"
+
+
+def notice_image(force_render=False):
+    """The stamped-band crop, from cache unless asked to re-render.
+
+    The cache is committed on purpose. PDF rendering is not byte-identical
+    across platforms -- macOS on arm64 and Windows on x64 produce different
+    JPEGs from the same page -- so re-rendering in CI would make the drift
+    check fail on a difference that means nothing. Caching the image keeps the
+    check about the thing it is meant to catch: the interface changing without
+    the demo being rebuilt.
+
+    Regenerate deliberately with: python3 packaging/build_demo.py --render
+    """
+    if not force_render and NOTICE_CACHE.is_file():
+        return NOTICE_CACHE.read_text(encoding="utf-8").strip()
+    data = render_notice(ISSUED, password="")
+    NOTICE_CACHE.write_text(data, encoding="utf-8")
+    print("  re-rendered {}".format(NOTICE_CACHE.name))
+    return data
+
+
 def render_notice(pdf_path, password=None):
     """A crop of the stamped band, legible at the size a browser shows it.
 
@@ -93,7 +117,7 @@ def demo_values(name):
     }.get(name, {})
 
 
-def capture():
+def capture(force_render=False):
     """Run the real engine and record what each endpoint would answer."""
     import opus
     import connectors
@@ -205,7 +229,7 @@ def capture():
         "ledger": {"ledger": ledger, "intact": intact, "report": report,
                    "path": "~/Music/Licensed/license_ledger.csv"},
         "connectors": {"connectors": conn},
-        "images": {"notice": render_notice(ISSUED, password="")},
+        "images": {"notice": notice_image(force_render)},
     }
 
 
@@ -363,7 +387,7 @@ BANNER = """
 """
 
 
-def build():
+def build(force_render=False):
     for f in ("app.html", "app.css", "app.js"):
         if not (STATIC / f).is_file():
             sys.exit("Missing {} — the demo is built from the app.".format(f))
@@ -372,7 +396,7 @@ def build():
     css = (STATIC / "app.css").read_text(encoding="utf-8")
     js = (STATIC / "app.js").read_text(encoding="utf-8")
 
-    data = capture()
+    data = capture(force_render)
     mock = MOCK_JS.replace("__CAPTURED__",
                            json.dumps(data, separators=(",", ":")))
 
@@ -406,4 +430,4 @@ def build():
 
 
 if __name__ == "__main__":
-    sys.exit(build())
+    sys.exit(build("--render" in sys.argv))
