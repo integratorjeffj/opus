@@ -13,3 +13,7 @@ __pycache__/
 /dist/
 packaging/version_info.txt
 packaging/opus.icns
+
+# Synced remote catalogues and the watcher's memory of what it has seen.
+.opus-catalog/
+.opus-seen

@@ -144,6 +144,12 @@ PAYPAL_TYPE_DENYLIST = (
 TITLE_MATCH_CUTOFF = 0.86
 
 
+try:
+    import connectors
+except ImportError:                                        # pragma: no cover
+    sys.exit("The 'connectors' package is missing from this install.")
+
+
 # ---------------------------------------------------------------------------
 # Release identity, bundled resources and update checks
 #
@@ -1206,6 +1212,62 @@ def launch_gui():
                             "Cmd-click to change the selection.",
               foreground="#555").pack(side="left", padx=12)
 
+    # ===================== Tab 3: Connections ==============================
+    tab3 = ttk.Frame(notebook, padding=10)
+    notebook.add(tab3, text="  Connections  ")
+
+    ttk.Label(tab3, text="Where orders and master files can come from.",
+              font=("Helvetica", 11, "bold")).pack(anchor="w")
+    ttk.Label(tab3, foreground="#555", wraplength=760, justify="left",
+              text=("Anything marked planned is a contract with no "
+                    "implementation behind it. Selecting one is an error "
+                    "rather than a quiet no-op, so nothing here can look "
+                    "connected when it is not.")
+              ).pack(anchor="w", pady=(2, 10))
+
+    conn_cols = ("name", "label", "state", "detail")
+    conn_tree = ttk.Treeview(tab3, columns=conn_cols, show="tree headings",
+                             height=14)
+    conn_tree.heading("#0", text="")
+    conn_tree.column("#0", width=20, stretch=False)
+    for col, title, width in (("name", "Name", 110),
+                              ("label", "Connector", 190),
+                              ("state", "State", 90),
+                              ("detail", "What it is", 380)):
+        conn_tree.heading(col, text=title)
+        conn_tree.column(col, width=width,
+                         anchor="w", stretch=(col == "detail"))
+
+    conn_scroll = ttk.Scrollbar(tab3, orient="vertical",
+                                command=conn_tree.yview)
+    conn_tree.configure(yscrollcommand=conn_scroll.set)
+    conn_tree.pack(side="left", fill="both", expand=True)
+    conn_scroll.pack(side="left", fill="y")
+
+    # State is carried by colour as well as the word, so what is usable reads
+    # at a glance rather than needing to be read.
+    conn_tree.tag_configure("built", foreground="#356b61")
+    conn_tree.tag_configure("unverified", foreground="#8a6320")
+    conn_tree.tag_configure("planned", foreground="#8a8a94")
+
+    heading_for = {"order": "Order sources",
+                   "catalog": "Catalog sources",
+                   "delivery": "Delivery channels"}
+
+    def load_connections():
+        conn_tree.delete(*conn_tree.get_children())
+        groups = {}
+        for kind, name, label, cstate, desc in connectors.describe():
+            if kind not in groups:
+                groups[kind] = conn_tree.insert(
+                    "", "end", text="", open=True,
+                    values=(heading_for.get(kind, kind).upper(), "", "", ""))
+            conn_tree.insert(groups[kind], "end", text="",
+                             values=(name, label, cstate, desc),
+                             tags=(cstate,))
+
+    load_connections()
+
     # ===================== Shared footer ===================================
     out_frame = ttk.Frame(main)
     out_frame.pack(fill="x", pady=(12, 0))
@@ -1346,6 +1408,68 @@ def launch_gui():
 # Command line
 # ---------------------------------------------------------------------------
 
+def list_connectors():
+    """Print the connector gallery. Also what --list-connectors shows."""
+    rows = connectors.describe()
+    heading = {"order": "ORDER SOURCES", "catalog": "CATALOG SOURCES",
+               "delivery": "DELIVERY CHANNELS"}
+    current = None
+    for kind, name, label, state, desc in rows:
+        if kind != current:
+            current = kind
+            print("\n{}".format(heading[kind]))
+            print("-" * len(heading[kind]))
+        print("  {:<12} {:<26} {}".format(name, label, state))
+        print("  {:<12} {}".format("", desc))
+    print("\nbuilt      = implemented and covered by the test suite")
+    print("unverified = implemented, never run against the live service")
+    print("planned    = a contract only; using one is an error, not a no-op")
+    return 0
+
+
+def resolve_order_source(args, parser):
+    """Build the chosen OrderSource, or None to use the legacy CSV path."""
+    if not args.order_source:
+        return None
+    cls = connectors.get("order", args.order_source)
+    src = cls().configure(
+        path=args.paypal,
+        client_id=args.paypal_client_id,
+        client_secret=args.paypal_client_secret,
+        sandbox=args.paypal_sandbox)
+    ok, msg = src.health()
+    if not ok:
+        parser.error("{}: {}".format(cls.label, msg))
+    print("Orders from {} ({})".format(cls.label, msg))
+    return src
+
+
+def resolve_catalog_map(args, parser):
+    """Return a Path to a catalog_map.csv for whichever catalog source is set."""
+    if not args.catalog_source:
+        return args.catalog
+
+    cls = connectors.get("catalog", args.catalog_source)
+    cat = cls().configure(
+        root=args.catalog_root,
+        key_file=args.gdrive_key,
+        folder_id=args.gdrive_folder)
+    ok, msg = cat.health()
+    if not ok:
+        parser.error("{}: {}".format(cls.label, msg))
+
+    cache = Path(args.catalog_cache) if args.catalog_cache else Path(".opus-catalog")
+    cache.mkdir(parents=True, exist_ok=True)
+    print("Catalog from {} ({})".format(cls.label, msg))
+
+    root = cat.materialize(cache)
+    print("  {} {}".format("using" if root != cache else "synced into", root))
+
+    # The generated map goes in the cache, never into the catalogue folder --
+    # that folder belongs to the publisher and is usually synced.
+    return cat.catalog_map(root, cache / "catalog_map.csv")
+
+
 def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     if not argv:
@@ -1385,10 +1509,47 @@ def main(argv=None):
                         version="{} {}".format(APP_NAME, __version__))
     parser.add_argument("--no-update-check", action="store_true",
                         help="Skip the check for a newer release")
+
+    conn = parser.add_argument_group(
+        "connectors",
+        "Where orders and master files come from. Run --list-connectors to "
+        "see every adapter and whether it is built, unverified or planned.")
+    conn.add_argument("--list-connectors", action="store_true",
+                      help="List every connector and its state, then exit")
+    conn.add_argument("--order-source", metavar="NAME",
+                      help="Order connector to use, e.g. paypal-csv, paypal-api")
+    conn.add_argument("--catalog-source", metavar="NAME",
+                      help="Catalog connector to use, e.g. local, gdrive")
+    conn.add_argument("--catalog-root", type=Path,
+                      help="Folder holding the pieces (--catalog-source local)")
+    conn.add_argument("--catalog-cache", type=Path,
+                      help="Where a remote catalog is synced to "
+                           "(default: ./.opus-catalog)")
+    conn.add_argument("--since", metavar="M/D/YY",
+                      help="Only consider orders on or after this date")
+    conn.add_argument("--gdrive-key", type=Path,
+                      help="Google service account JSON key file")
+    conn.add_argument("--gdrive-folder", metavar="ID_OR_URL",
+                      help="Drive folder holding the catalog")
+    conn.add_argument("--paypal-client-id",
+                      help="PayPal REST app client ID (--order-source paypal-api)")
+    conn.add_argument("--paypal-client-secret", help="PayPal REST app secret")
+    conn.add_argument("--paypal-sandbox", action="store_true",
+                      help="Use PayPal's sandbox rather than the live account")
+    conn.add_argument("--watch", type=Path, metavar="FOLDER",
+                      help="Watch a folder for new exports and plan each one")
+    conn.add_argument("--watch-once", action="store_true",
+                      help="With --watch: make a single pass and exit, which "
+                           "is what a scheduled task wants")
     args = parser.parse_args(argv)
 
     if args.no_update_check:
         os.environ[NO_UPDATE_ENV] = "1"
+
+    if args.list_connectors:
+        return list_connectors()
+
+    since = parse_date_arg(args.since) if args.since else None
 
     if args.demo:
         demo_paypal, demo_catalog = bundled_demo_paths()
@@ -1404,6 +1565,31 @@ def main(argv=None):
     if args.gui:
         return launch_gui()
 
+    if args.watch:
+        if not args.catalog and not args.catalog_source:
+            parser.error("--watch needs --catalog or --catalog-source so it "
+                         "knows what to match against.")
+        catalog_map = resolve_catalog_map(args, parser)
+        catalog = load_catalog(catalog_map)
+        out_dir = args.out or Path("./licensed")
+
+        def plan_one(path):
+            orders, warnings = read_paypal_orders(path)
+            for w in warnings:
+                print("  Note: {}".format(w))
+            plan = plan_paypal_batch(orders, catalog, out_dir)
+            ready = [e for e in plan if e["disposition"] == "ready"]
+            flagged = [e for e in plan if e["disposition"] != "ready"]
+            print("  {} order(s) ready, {} needing a look, {} file(s) queued."
+                  .format(len(ready), len(flagged),
+                          sum(len(e["files"]) for e in ready)))
+            for e in flagged:
+                print("    {} -- {}".format(e["item_title"], e["disposition"]))
+            print("  Nothing stamped. A human still approves this batch.")
+
+        return connectors.watch(args.watch, on_file=plan_one,
+                                once=args.watch_once)
+
     if args.make_catalog:
         path, n = make_catalog_template(args.make_catalog, args.output_csv)
         print("Wrote {} row(s) to {}".format(n, path))
@@ -1411,13 +1597,32 @@ def main(argv=None):
         return 0
 
     # --- PayPal mode --------------------------------------------------------
-    if args.paypal:
-        if not args.catalog or not args.out:
-            parser.error("--paypal also needs --catalog and --out")
-        orders, warnings = read_paypal_orders(args.paypal)
+    if args.paypal or args.order_source:
+        if not args.out:
+            parser.error("Reading orders also needs --out")
+        if not (args.catalog or args.catalog_source):
+            parser.error("Reading orders also needs --catalog or "
+                         "--catalog-source")
+
+        source = resolve_order_source(args, parser)
+        if source is not None:
+            orders, warnings = source.list_orders(since=since)
+            problems = connectors.validate_orders(orders)
+            if problems:
+                parser.error("{} produced malformed orders: {}".format(
+                    args.order_source, "; ".join(problems[:3])))
+        else:
+            orders, warnings = read_paypal_orders(args.paypal)
+            if since:
+                before = len(orders)
+                orders = [o for o in orders if o["order_date"] >= since]
+                if before != len(orders):
+                    warnings.append("{} order(s) before {} were skipped."
+                                    .format(before - len(orders), since))
+
         for w in warnings:
             print("Note: {}".format(w))
-        catalog = load_catalog(args.catalog)
+        catalog = load_catalog(resolve_catalog_map(args, parser))
         plan = plan_paypal_batch(orders, catalog, args.out)
 
         print("\n{:<10} {:<26} {:<30} {:>5}  {}".format(

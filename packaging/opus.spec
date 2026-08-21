@@ -48,7 +48,13 @@ a = Analysis(
     # cryptography is imported lazily by pypdf for AES, so PyInstaller's
     # static analysis does not always find it on its own.
     hiddenimports=["tkinter", "tkinter.ttk", "tkinter.filedialog",
-                   "tkinter.messagebox", "cryptography"],
+                   "tkinter.messagebox", "cryptography",
+                   # Adapters are imported for their registration side effect,
+                   # so name them explicitly rather than trusting the graph.
+                   "connectors", "connectors.base", "connectors.http",
+                   "connectors.catalog_local", "connectors.catalog_gdrive",
+                   "connectors.orders_paypal_csv", "connectors.orders_paypal_api",
+                   "connectors.planned", "connectors.watch"],
     hookspath=[],
     runtime_hooks=[],
     # Trimmed because they are large, pulled in transitively, and unused here.

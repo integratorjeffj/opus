@@ -63,6 +63,10 @@ jobs:
           print("engine OK -- 9 files stamped, encrypted and noticed")
           PY
 
+      - name: Connector tests
+        shell: bash
+        run: python tests/test_connectors.py
+
       - name: Build the app
         run: python packaging/build.py --clean
 

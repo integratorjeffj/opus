@@ -1,0 +1,123 @@
+{
+  "_comment": "A hand-built PayPal Transaction Search response, shaped to the documented schema. Every value is fictional. It deliberately mixes two real sales with a refund, a pending payment, a denied payment, a withdrawal and a titleless sale, so the filters are exercised rather than assumed.",
+  "transaction_details": [
+    {
+      "transaction_info": {
+        "transaction_id": "SALE000001",
+        "transaction_event_code": "T0006",
+        "transaction_initiation_date": "2026-08-18T09:14:02+0000",
+        "transaction_status": "S",
+        "transaction_amount": { "currency_code": "USD", "value": "24.00" },
+        "fee_amount": { "currency_code": "USD", "value": "-1.00" }
+      },
+      "payer_info": {
+        "account_id": "AAAA1111",
+        "email_address": "office@example.org",
+        "payer_name": {
+          "alternate_full_name": "First Baptist Church, Springfield"
+        }
+      },
+      "cart_info": {
+        "item_details": [
+          { "item_name": "Evening Bells - PDF Download", "item_quantity": "1" }
+        ]
+      }
+    },
+    {
+      "transaction_info": {
+        "transaction_id": "SALE000002",
+        "transaction_event_code": "T0006",
+        "transaction_initiation_date": "2026-08-18T11:02:55+0000",
+        "transaction_status": "S",
+        "transaction_subject": "Fanfare for Two Trumpets",
+        "transaction_amount": { "currency_code": "USD", "value": "12.00" }
+      },
+      "payer_info": {
+        "account_id": "BBBB2222",
+        "email_address": "m.delgado@example.com",
+        "payer_name": { "given_name": "Maria", "surname": "Delgado" }
+      },
+      "cart_info": {}
+    },
+    {
+      "transaction_info": {
+        "transaction_id": "REFUND0001",
+        "transaction_event_code": "T1107",
+        "transaction_initiation_date": "2026-08-19T15:00:00+0000",
+        "transaction_status": "S",
+        "transaction_amount": { "currency_code": "USD", "value": "-12.00" }
+      },
+      "payer_info": {
+        "email_address": "m.delgado@example.com",
+        "payer_name": { "alternate_full_name": "Maria Delgado" }
+      },
+      "cart_info": {
+        "item_details": [
+          { "item_name": "Fanfare for Two Trumpets", "item_quantity": "1" }
+        ]
+      }
+    },
+    {
+      "transaction_info": {
+        "transaction_id": "PENDING001",
+        "transaction_event_code": "T0006",
+        "transaction_initiation_date": "2026-08-20T09:41:12+0000",
+        "transaction_status": "P",
+        "transaction_amount": { "currency_code": "USD", "value": "10.00" }
+      },
+      "payer_info": {
+        "email_address": "t.whitfield@example.com",
+        "payer_name": { "alternate_full_name": "T. Whitfield" }
+      },
+      "cart_info": {
+        "item_details": [{ "item_name": "Evening Bells", "item_quantity": "1" }]
+      }
+    },
+    {
+      "transaction_info": {
+        "transaction_id": "DENIED0001",
+        "transaction_event_code": "T0006",
+        "transaction_initiation_date": "2026-08-20T10:00:00+0000",
+        "transaction_status": "D",
+        "transaction_amount": { "currency_code": "USD", "value": "18.00" }
+      },
+      "payer_info": {
+        "email_address": "music@example.org",
+        "payer_name": { "alternate_full_name": "Grace Chapel" }
+      },
+      "cart_info": {
+        "item_details": [
+          { "item_name": "Processional in D", "item_quantity": "1" }
+        ]
+      }
+    },
+    {
+      "transaction_info": {
+        "transaction_id": "WITHDRAW01",
+        "transaction_event_code": "T0400",
+        "transaction_initiation_date": "2026-08-20T08:05:00+0000",
+        "transaction_status": "S",
+        "transaction_amount": { "currency_code": "USD", "value": "-500.00" }
+      },
+      "payer_info": { "payer_name": { "alternate_full_name": "T. Whitfield" } },
+      "cart_info": {}
+    },
+    {
+      "transaction_info": {
+        "transaction_id": "NOTITLE001",
+        "transaction_event_code": "T0006",
+        "transaction_initiation_date": "2026-08-20T12:00:00+0000",
+        "transaction_status": "S",
+        "transaction_amount": { "currency_code": "USD", "value": "9.00" }
+      },
+      "payer_info": {
+        "email_address": "someone@example.com",
+        "payer_name": { "alternate_full_name": "Someone Without A Title" }
+      },
+      "cart_info": {}
+    }
+  ],
+  "total_items": 7,
+  "total_pages": 1,
+  "page": 1
+}

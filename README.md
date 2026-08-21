@@ -207,14 +207,36 @@ PDF without installing anything.
 Every name, title, transaction ID and note in those folders is invented. The
 owner passwords in the sample ledger unlock nothing outside this repo.
 
+## Where orders and files come from
+
+Opus reads orders from a **source** and masters from a **catalog**, and both
+are pluggable. A downloaded PayPal export and a local folder are what ship
+working today; PayPal's live API and a shared Google Drive folder are
+implemented but not yet run against the live services.
+
+```bash
+python3 opus.py --list-connectors
+```
+
+Anything listed as `planned` is a contract with nothing behind it, and
+selecting one is an error rather than a quiet no-op — so nothing in the app
+can look connected when it is not. **[CONNECTORS.md](CONNECTORS.md)** covers
+setup for each, including why Drive uses a service account instead of a
+"Sign in with Google" button.
+
+There is also a watched-folder mode: drop an export into a folder and Opus
+plans the batch. It plans; it does not stamp. A human still approves.
+
 ## Roadmap
 
-- [ ] Auto-email delivery with the send recorded in the ledger
-- [ ] Watch folder, so dropping an export in runs the batch on a schedule
+- [x] Watch folder, so dropping an export in plans the batch on a schedule
 - [x] Packaged `.app` and `.exe` via PyInstaller, removing the Python install
 - [ ] Code signing and notarization, so a first run is not a warning
 - [ ] Per-page notice placement rules for pieces with tight title blocks
-- [ ] Shopify and Square export adapters alongside PayPal
+- [x] Connector layer, so a new source is an adapter rather than a rewrite
+- [ ] Run the PayPal API and Google Drive adapters against live accounts
+- [ ] Shopify and Square adapters alongside PayPal
+- [ ] Delivery: expiring download links, then mail, recorded in the ledger
 
 ## Notes
 
