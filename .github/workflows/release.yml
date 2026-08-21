@@ -71,6 +71,10 @@ jobs:
         shell: bash
         run: python tests/test_phase3.py
 
+      - name: Interface tests (settings, API, server guards)
+        shell: bash
+        run: python tests/test_webui.py
+
       - name: The committed ledger's chain is intact
         shell: bash
         run: python opus.py --verify-ledger samples/licensed/license_ledger.csv

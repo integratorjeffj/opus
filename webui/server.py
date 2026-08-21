@@ -55,6 +55,26 @@ def _allowed_hosts(port):
             "[::1]:{}".format(port)}
 
 
+class QuietServer(ThreadingHTTPServer):
+    """A server that does not shout when a browser hangs up.
+
+    Closing a tab mid-response, or stopping the app while a keep-alive
+    connection is open, raises a connection-reset deep in socketserver. The
+    default handler prints a stack trace, which is alarming and tells nobody
+    anything. Anything else still surfaces.
+    """
+
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def handle_error(self, request, client_address):
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (ConnectionResetError, ConnectionAbortedError,
+                            BrokenPipeError)):
+            return
+        super().handle_error(request, client_address)
+
+
 class Session:
     """One run of the app: its token and the config it is editing."""
 
@@ -234,8 +254,8 @@ def serve(port=DEFAULT_PORT, open_browser=True, log=print):
     session = Session()
     for attempt in range(12):
         try:
-            httpd = ThreadingHTTPServer(("127.0.0.1", port + attempt),
-                                        build_handler(session, port + attempt))
+            httpd = QuietServer(("127.0.0.1", port + attempt),
+                                build_handler(session, port + attempt))
             port = port + attempt
             break
         except OSError:

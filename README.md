@@ -335,6 +335,22 @@ the determined case.
 
 **[OVERSIGHT.md](OVERSIGHT.md)** covers all three in full.
 
+## Tests
+
+```bash
+python3 tests/test_connectors.py   # 84  sources, catalogues, the watched folder
+python3 tests/test_phase3.py       # 80  scoring, delivery, ledger integrity
+python3 tests/test_webui.py        # 122 settings, the API, the server's guards
+```
+
+286 checks, no pytest required, all three run in CI on both platforms along
+with a rebuild of the demo to prove it still matches the interface.
+
+Nothing is mocked where a real thing would do: delivery is tested against a
+local HTTP server and a local SMTP server, the app's guards are tested over
+real sockets, and ledger tamper-detection works by mutating a real ledger four
+ways and confirming each is caught.
+
 ## Roadmap
 
 - [x] Watch folder, so dropping an export in plans the batch on a schedule
@@ -347,7 +363,9 @@ the determined case.
 - [x] Delivery: expiring download links and mail, recorded in the ledger
 - [x] Confidence scoring, so automation can be opened one rung at a time
 - [x] Tamper-evident ledger
+- [x] Browser interface, so nothing needs a terminal
 - [ ] Agreement tracking: how often the automatic decision matched the human one
+- [ ] Retire the older tkinter window
 
 ## Notes
 
