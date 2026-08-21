@@ -276,6 +276,52 @@ setup for each, including why Drive uses a service account instead of a
 There is also a watched-folder mode: drop an export into a folder and Opus
 plans the batch. It plans; it does not stamp. A human still approves.
 
+## Deciding what still needs a person
+
+Opus scores every order before it stamps anything, from signals it already
+holds: how the title matched, whether more than one piece could have matched,
+whether the file count looks right, whether this buyer has ordered before.
+There is no model, and `--explain` prints the reasoning for every order.
+
+```bash
+python3 opus.py --demo --out ./licensed --dry-run --confidence --explain
+```
+
+**The default holds everything.** Automation is opened one rung at a time, by
+lowering `--hold-below`, and the right way to pick a number is to compare what
+*would* have released against what a person actually approved. A held order is
+still written to the ledger with its score and its reason, so the record
+answers "why did this not go out?" as well as "what went out?".
+
+Two things hold an order regardless of score: a transaction already in the
+ledger, and a title that more than one catalogue entry could match.
+
+## Delivering it
+
+```bash
+python3 opus.py --paypal export.csv --catalog map.csv --out ./licensed     --hold-below 0.85 --deliver portal,smtp     --portal-root ./portal --portal-url https://opus.example.org     --smtp-host smtp.example.org --smtp-user pub@example.org
+```
+
+The portal publishes the files under an expiring link and the email carries
+that link — not the files. A twenty-part band piece does not fit in an
+attachment, a new sender pushing PDFs is spam-filter bait, and a link produces
+download telemetry that is itself a licensing signal.
+
+## A ledger you can check
+
+Every ledger row commits to the row before it, so editing one, deleting one,
+reordering two or inserting a forgery all break the chain from that point on.
+
+```bash
+python3 opus.py --verify-ledger ./licensed/license_ledger.csv
+```
+
+It detects tampering; it does not prevent it. Detecting casual edits is the
+realistic threat inside a small business, and off-site backups are what cover
+the determined case.
+
+**[OVERSIGHT.md](OVERSIGHT.md)** covers all three in full.
+
 ## Roadmap
 
 - [x] Watch folder, so dropping an export in plans the batch on a schedule
@@ -285,7 +331,10 @@ plans the batch. It plans; it does not stamp. A human still approves.
 - [x] Connector layer, so a new source is an adapter rather than a rewrite
 - [ ] Run the PayPal API and Google Drive adapters against live accounts
 - [ ] Shopify and Square adapters alongside PayPal
-- [ ] Delivery: expiring download links, then mail, recorded in the ledger
+- [x] Delivery: expiring download links and mail, recorded in the ledger
+- [x] Confidence scoring, so automation can be opened one rung at a time
+- [x] Tamper-evident ledger
+- [ ] Agreement tracking: how often the automatic decision matched the human one
 
 ## Notes
 

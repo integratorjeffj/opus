@@ -38,11 +38,26 @@ The fourth order in the export — `Processional in D` — is not in the catalog
 so it was flagged rather than guessed at, and produced nothing. The refund, the
 withdrawal and the pending payment never reached the plan at all.
 
+## The ledger now carries decisions and a chain
+
+Each row records what the confidence engine concluded (`confidence`,
+`decision`) alongside what was stamped, and commits to the row before it
+(`prev_hash`, `row_hash`). Check it:
+
+```bash
+python3 opus.py --verify-ledger samples/licensed/license_ledger.csv
+```
+
+The `delivery_*` columns are empty here, because nothing was actually sent --
+these files were produced by a local run with no delivery channel configured.
+
 ## Two notes on the committed ledger
 
 The `source_file` and `output_file` columns were rewritten from absolute paths
 to repo-relative ones before publishing, so the file does not carry a local
-machine's directory layout. Nothing else was touched.
+machine's directory layout. Because those columns are covered by the hash, the
+chain was recomputed afterwards -- so it verifies, but it attests to the
+published rows rather than to the original run. Nothing else was changed.
 
 Every row's `notes` reads `qpdf not installed; flatten step skipped`. That is
 the tool being honest rather than a failure: `qpdf` is an optional extra pass

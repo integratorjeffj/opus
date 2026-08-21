@@ -62,6 +62,7 @@ MIT licensed. See LICENSE.
 import argparse
 import csv
 import difflib
+import hashlib
 import io
 import os
 import re
@@ -119,7 +120,9 @@ MARGIN = 18          # points of clearance from the page edge
 LINE_GAP = 2         # points between wrapped header lines
 LEDGER_NAME = "license_ledger.csv"
 
-LEDGER_FIELDS = [
+# Columns written before delivery and tamper-evidence existed. Kept as their
+# own list so an older ledger can still be read and verified.
+LEDGER_CORE_FIELDS = [
     "stamped_at",
     "licensee",
     "order_ref",
@@ -132,6 +135,24 @@ LEDGER_FIELDS = [
     "status",
     "notes",
 ]
+
+# What the decision engine concluded, and what actually happened afterwards.
+LEDGER_DECISION_FIELDS = ["confidence", "decision"]
+LEDGER_DELIVERY_FIELDS = ["delivered_at", "delivery_channel", "delivery_ref"]
+
+# The chain. Each row commits to the row before it, so a row cannot be edited,
+# reordered or removed without breaking every hash after it. This is what makes
+# the ledger evidence rather than a list -- its entire purpose is to tie a
+# leaked copy back to an order, and a record anyone can quietly edit is not
+# much of a record.
+LEDGER_CHAIN_FIELDS = ["prev_hash", "row_hash"]
+
+LEDGER_FIELDS = (LEDGER_CORE_FIELDS + LEDGER_DECISION_FIELDS
+                 + LEDGER_DELIVERY_FIELDS + LEDGER_CHAIN_FIELDS)
+
+# Everything the hash covers: every column except the hashes themselves.
+LEDGER_SIGNED_FIELDS = (LEDGER_CORE_FIELDS + LEDGER_DECISION_FIELDS
+                        + LEDGER_DELIVERY_FIELDS)
 
 # PayPal rows we never treat as a sale.
 PAYPAL_TYPE_DENYLIST = (
@@ -624,19 +645,107 @@ def ledger_path(out_dir):
     return Path(out_dir) / LEDGER_NAME
 
 
+def row_digest(record, prev_hash):
+    """The hash a ledger row commits to.
+
+    Covers every signed column plus the previous row's hash, so the chain
+    breaks if a row is edited, reordered, inserted or deleted.
+    """
+    parts = [prev_hash or ""]
+    for field in LEDGER_SIGNED_FIELDS:
+        parts.append(str(record.get(field, "") or ""))
+    joined = "".join(parts)
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()
+
+
+def last_ledger_hash(path):
+    """The row_hash of the final row, or "" for a new or unchained ledger."""
+    if not Path(path).exists():
+        return ""
+    try:
+        rows = read_csv_rows(path)
+    except Exception:
+        return ""
+    for row in reversed(rows):
+        h = (row.get("row_hash") or "").strip()
+        if h:
+            return h
+    return ""
+
+
 def append_ledger(out_dir, records):
-    """Append records, creating the file with headers if new."""
+    """Append records, creating the file with headers if new.
+
+    Each record is chained to the one before it as it is written.
+    """
     path = ledger_path(out_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     is_new = not path.exists()
+    prev = last_ledger_hash(path)
+
     with path.open("a", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=LEDGER_FIELDS,
                                 extrasaction="ignore")
         if is_new:
             writer.writeheader()
         for rec in records:
+            rec = dict(rec)
+            rec["prev_hash"] = prev
+            rec["row_hash"] = row_digest(rec, prev)
+            prev = rec["row_hash"]
             writer.writerow(rec)
     return path
+
+
+def verify_ledger(path):
+    """Re-walk the chain. Returns (ok, report_lines).
+
+    A ledger written before the chain existed verifies as "unchained" rather
+    than "tampered" -- the absence of evidence is not evidence of tampering,
+    and saying otherwise would cry wolf on every historic file.
+    """
+    path = Path(path)
+    if not path.exists():
+        return False, ["No ledger at {}".format(path)]
+
+    rows = read_csv_rows(path)
+    if not rows:
+        return True, ["Ledger is empty."]
+
+    chained = [r for r in rows if (r.get("row_hash") or "").strip()]
+    if not chained:
+        return True, [
+            "{} row(s), none chained.".format(len(rows)),
+            "This ledger predates tamper-evidence. New rows will be chained;",
+            "existing rows cannot be verified retrospectively.",
+        ]
+
+    report, prev, broken = [], "", 0
+    for i, row in enumerate(rows, 1):
+        got = (row.get("row_hash") or "").strip()
+        if not got:
+            report.append("row {}: not chained (written by an older build)".format(i))
+            continue
+        claimed_prev = (row.get("prev_hash") or "").strip()
+        if claimed_prev != prev:
+            broken += 1
+            report.append(
+                "row {}: chain break -- expected to follow {}, claims {}".format(
+                    i, prev[:12] or "(start)", claimed_prev[:12] or "(start)"))
+        expect = row_digest(row, claimed_prev)
+        if expect != got:
+            broken += 1
+            report.append(
+                "row {}: contents changed since it was written "
+                "({}... does not match {}...)".format(i, got[:12], expect[:12]))
+        prev = got
+
+    if broken:
+        report.insert(0, "{} row(s), {} problem(s) found.".format(len(rows), broken))
+        return False, report
+
+    return True, ["{} row(s), {} chained, chain intact.".format(
+        len(rows), len(chained))]
 
 
 def already_stamped_refs(out_dir):
@@ -899,30 +1008,98 @@ def plan_paypal_batch(orders, catalog, out_dir):
     return plan
 
 
-def run_paypal_plan(plan, out_dir, progress=None):
-    """Stamp every 'ready' entry. Returns (records, ledger_path, summary)."""
-    ready = [e for e in plan if e["disposition"] == "ready"]
+def run_paypal_plan(plan, out_dir, progress=None, assessments=None,
+                    deliver=None):
+    """Stamp every 'ready' entry. Returns (records, ledger_path, summary).
+
+    `assessments` maps order_ref to a confidence Assessment. Anything not
+    assessed RELEASE is held: it is not stamped, and it is not delivered. The
+    decision and its score are written to the ledger either way, so the record
+    shows what the machine concluded as well as what it did.
+
+    `deliver` is called as deliver(entry, output_paths) after an order's files
+    are stamped, and returns a receipt. It is only ever called for released
+    orders, and a failure there is recorded against the order rather than
+    ending the batch -- files that exist but were not sent are recoverable;
+    a half-finished run is not.
+    """
+    ready, held = [], []
+    for entry in plan:
+        if entry["disposition"] != "ready":
+            continue
+        a = (assessments or {}).get(entry.get("order_ref"))
+        if a is not None and a.verdict != "release":
+            held.append((entry, a))
+        else:
+            ready.append(entry)
+
     total_files = sum(len(e["files"]) for e in ready)
     all_records = []
     done_files = 0
 
     for entry in ready:
         pw = secrets.token_urlsafe(12)
+        a = (assessments or {}).get(entry.get("order_ref"))
+        records = []
         for src in entry["files"]:
             done_files += 1
             if progress:
                 progress(done_files, total_files,
                          "{} - {}".format(entry["buyer"], Path(src).name))
-            all_records.append(stamp_one(
+            rec = stamp_one(
                 src, entry["buyer"], out_dir, entry["order_date"], pw,
-                entry["order_ref"], entry["matched_title"] or entry["item_title"]))
+                entry["order_ref"], entry["matched_title"] or entry["item_title"])
+            if a is not None:
+                rec["confidence"] = "{:.3f}".format(a.score)
+                rec["decision"] = a.verdict
+            records.append(rec)
+
+        if deliver is not None:
+            good = [r["output_file"] for r in records if r["status"] == "ok"]
+            if good:
+                try:
+                    receipt = deliver(entry, good)
+                    for rec in records:
+                        if rec["status"] == "ok":
+                            rec["delivered_at"] = receipt.get("sent_at", "")
+                            rec["delivery_channel"] = receipt.get("channel", "")
+                            rec["delivery_ref"] = (receipt.get("url")
+                                                   or receipt.get("to")
+                                                   or receipt.get("detail", ""))
+                except Exception as exc:
+                    note = "delivery failed: {}".format(exc)
+                    for rec in records:
+                        rec["notes"] = "; ".join(
+                            x for x in (rec.get("notes"), note) if x)
+        all_records.extend(records)
+
+    # Held orders are recorded without being stamped, so the ledger answers
+    # "why did this not go out?" as well as "what went out?".
+    for entry, a in held:
+        all_records.append({
+            "stamped_at": datetime.now().isoformat(timespec="seconds"),
+            "licensee": entry["buyer"],
+            "order_ref": entry["order_ref"],
+            "item_title": entry["matched_title"] or entry["item_title"],
+            "license_date": format_date(entry["order_date"]),
+            "source_file": "", "output_file": "", "pages": "",
+            "owner_password": "",
+            "status": "held",
+            "notes": "; ".join(a.reasons) or "below the release threshold",
+            "confidence": "{:.3f}".format(a.score),
+            "decision": a.verdict,
+        })
 
     path = append_ledger(out_dir, all_records) if all_records else ledger_path(out_dir)
     summary = {
         "orders": len(ready),
         "files_ok": len([r for r in all_records if r["status"] == "ok"]),
-        "files_failed": len([r for r in all_records if r["status"] != "ok"]),
-        "skipped": len(plan) - len(ready),
+        "files_failed": len([r for r in all_records
+                             if r["status"] not in ("ok", "held")]),
+        "skipped": len(plan) - len(ready) - len(held),
+        "held": len(held),
+        "delivered": len({r["order_ref"] for r in all_records
+                          if r.get("delivered_at")}),
     }
     return all_records, path, summary
 
@@ -1408,6 +1585,79 @@ def launch_gui():
 # Command line
 # ---------------------------------------------------------------------------
 
+def ledger_buyers(out_dir):
+    """Licensees already issued to. A returning buyer is a confidence signal."""
+    if not out_dir:
+        return set()
+    path = ledger_path(out_dir)
+    if not Path(path).exists():
+        return set()
+    try:
+        rows = read_csv_rows(path)
+    except Exception:
+        return set()
+    return {(r.get("licensee") or "").strip() for r in rows
+            if (r.get("status") or "").strip() == "ok"}
+
+
+def build_delivery(args, parser):
+    """Turn --deliver into the callable run_paypal_plan invokes per order.
+
+    When both channels are asked for, the portal runs first so the email can
+    carry the link rather than the files -- which is the whole reason the
+    portal exists.
+    """
+    import os as _os
+    from connectors import get as _get
+
+    wanted = [w.strip().lower()
+              for w in (args.deliver or "").split(",") if w.strip()]
+    for w in wanted:
+        if w not in ("portal", "smtp"):
+            parser.error("--deliver takes portal, smtp, or portal,smtp")
+
+    portal = None
+    if "portal" in wanted:
+        if not args.portal_root:
+            parser.error("--deliver portal needs --portal-root")
+        portal = _get("delivery", "portal")().configure(
+            root=args.portal_root, base_url=args.portal_url,
+            ttl_days=args.portal_ttl)
+        ok, msg = portal.health()
+        if not ok:
+            parser.error("portal: {}".format(msg))
+        print("Delivering by link: {}".format(msg))
+
+    mailer = None
+    if "smtp" in wanted:
+        if not args.smtp_host:
+            parser.error("--deliver smtp needs --smtp-host")
+        password = args.smtp_password or _os.environ.get("OPUS_SMTP_PASSWORD")
+        mailer = _get("delivery", "smtp")().configure(
+            host=args.smtp_host, port=args.smtp_port, username=args.smtp_user,
+            password=password, sender=args.smtp_from,
+            publisher=args.publisher, attach=args.attach)
+        ok, msg = mailer.health()
+        if not ok:
+            parser.error("smtp: {}".format(msg))
+        print("Delivering by email: {}".format(msg))
+
+    def _deliver(entry, output_files):
+        receipt = None
+        if portal is not None:
+            receipt = portal.deliver(entry, output_files)
+        if mailer is not None:
+            mailed = mailer.deliver(entry, output_files, receipt=receipt)
+            if receipt is None:
+                receipt = mailed
+            else:
+                receipt = dict(receipt)
+                receipt["detail"] = receipt["detail"] + "; " + mailed["detail"]
+        return receipt
+
+    return _deliver
+
+
 def list_connectors():
     """Print the connector gallery. Also what --list-connectors shows."""
     rows = connectors.describe()
@@ -1541,6 +1791,47 @@ def main(argv=None):
     conn.add_argument("--watch-once", action="store_true",
                       help="With --watch: make a single pass and exit, which "
                            "is what a scheduled task wants")
+
+    rev = parser.add_argument_group(
+        "review and delivery",
+        "Scoring decides what a person still has to look at. The default holds "
+        "everything: automation is opened one rung at a time, on evidence.")
+    rev.add_argument("--confidence", action="store_true",
+                     help="Score every order and show why")
+    rev.add_argument("--hold-below", type=float, metavar="N",
+                     help="Release orders scoring N or better, hold the rest "
+                          "(default: hold everything)")
+    rev.add_argument("--explain", action="store_true",
+                     help="With --confidence: print every signal per order")
+    rev.add_argument("--deliver", metavar="CHANNEL",
+                     help="Deliver released orders: portal, smtp, or both "
+                          "(portal,smtp)")
+    rev.add_argument("--portal-root", type=Path,
+                     help="Folder the expiring links are served from")
+    rev.add_argument("--portal-url", default="",
+                     help="Public base URL of the portal, e.g. "
+                          "https://opus.example.org")
+    rev.add_argument("--portal-ttl", type=int, default=14, metavar="DAYS",
+                     help="How long a link stays live (default: 14)")
+    rev.add_argument("--serve-portal", type=Path, metavar="ROOT",
+                     help="Serve a portal folder and exit on Ctrl-C")
+    rev.add_argument("--port", type=int, default=8080,
+                     help="Port for --serve-portal (default: 8080)")
+    rev.add_argument("--purge-expired", type=Path, metavar="ROOT",
+                     help="Delete expired drops from a portal folder, then exit")
+    rev.add_argument("--smtp-host")
+    rev.add_argument("--smtp-port", type=int, default=587)
+    rev.add_argument("--smtp-user")
+    rev.add_argument("--smtp-password",
+                     help="Prefer OPUS_SMTP_PASSWORD; a command line ends up "
+                          "in shell history")
+    rev.add_argument("--smtp-from", help="Sender address (default: --smtp-user)")
+    rev.add_argument("--publisher", default="",
+                     help="Name to sign delivery emails with")
+    rev.add_argument("--attach", action="store_true",
+                     help="Attach the files instead of sending a link")
+    rev.add_argument("--verify-ledger", type=Path, metavar="PATH",
+                     help="Re-walk a ledger's hash chain and report, then exit")
     args = parser.parse_args(argv)
 
     if args.no_update_check:
@@ -1548,6 +1839,22 @@ def main(argv=None):
 
     if args.list_connectors:
         return list_connectors()
+
+    if args.verify_ledger:
+        ok, report = verify_ledger(args.verify_ledger)
+        for line in report:
+            print(line)
+        return 0 if ok else 1
+
+    if args.serve_portal:
+        from connectors.delivery_portal import serve
+        return serve(args.serve_portal, port=args.port)
+
+    if args.purge_expired:
+        from connectors.delivery_portal import PortalDelivery
+        n = PortalDelivery().configure(root=args.purge_expired).purge_expired()
+        print("Removed {} expired drop(s) from {}".format(n, args.purge_expired))
+        return 0
 
     since = parse_date_arg(args.since) if args.since else None
 
@@ -1639,19 +1946,52 @@ def main(argv=None):
             for t in unmatched:
                 print("  {}".format(t))
 
+        assessments = None
+        if args.confidence or args.hold_below is not None:
+            from connectors import confidence as _conf
+            hold_below = (args.hold_below if args.hold_below is not None
+                          else _conf.DEFAULT_HOLD_BELOW)
+            assessed = _conf.assess_plan(
+                plan, catalog,
+                known_refs=already_stamped_refs(args.out),
+                known_buyers=ledger_buyers(args.out),
+                hold_below=hold_below)
+            assessments = {e.get("order_ref"): a for e, a in assessed}
+            counts = _conf.summarize(assessed)
+
+            print("\nCONFIDENCE  (release at {:.2f} or better)".format(hold_below))
+            for entry, a in assessed:
+                print("  {:<6.2f} {:<9} {:<26} {}".format(
+                    a.score, a.verdict, entry["buyer"][:26],
+                    entry["item_title"][:34]))
+                if args.explain:
+                    for line in a.explain().splitlines()[1:]:
+                        print("  " + line)
+            print("  -> {} release, {} hold, {} reject".format(
+                counts.get("release", 0), counts.get("hold", 0),
+                counts.get("reject", 0)))
+
         if args.dry_run:
             print("\nDry run -- nothing stamped.")
             return 0
+
+        deliver = build_delivery(args, parser) if args.deliver else None
 
         if not demo_ack_cli(args.demo_ack):
             return 2
 
         records, ledger, summary = run_paypal_plan(
             plan, args.out,
-            progress=lambda i, n, name: print("[{}/{}] {}".format(i, n, name)))
+            progress=lambda i, n, name: print("[{}/{}] {}".format(i, n, name)),
+            assessments=assessments, deliver=deliver)
         print("\n{} order(s), {} file(s) stamped, {} failed, {} skipped.".format(
             summary["orders"], summary["files_ok"], summary["files_failed"],
             summary["skipped"]))
+        if summary.get("held"):
+            print("{} order(s) held for review -- recorded, not issued."
+                  .format(summary["held"]))
+        if summary.get("delivered"):
+            print("{} order(s) delivered.".format(summary["delivered"]))
         print("Ledger: {}".format(ledger))
         return 0 if not summary["files_failed"] else 1
 

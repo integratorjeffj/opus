@@ -54,7 +54,9 @@ a = Analysis(
                    "connectors", "connectors.base", "connectors.http",
                    "connectors.catalog_local", "connectors.catalog_gdrive",
                    "connectors.orders_paypal_csv", "connectors.orders_paypal_api",
-                   "connectors.planned", "connectors.watch"],
+                   "connectors.planned", "connectors.watch",
+                   "connectors.confidence", "connectors.delivery_portal",
+                   "connectors.delivery_smtp"],
     hookspath=[],
     runtime_hooks=[],
     # Trimmed because they are large, pulled in transitively, and unused here.

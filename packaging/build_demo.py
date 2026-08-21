@@ -28,6 +28,10 @@ PLACEHOLDER = "__DATA__"
 IMG_WIDTH = 640
 IMG_QUALITY = 82
 
+# The rung the demo is set to. 0.80 releases the three clean orders and
+# still rejects the unmatched one, which is the interesting state to show.
+DEMO_HOLD_BELOW = 0.80
+
 MASTER = ROOT / "samples" / "catalog" / "Evening Bells" / "score.pdf"
 ISSUED = (ROOT / "samples" / "licensed"
           / "Evening_Bells_score__First_Baptist_Church_Springfield.pdf")
@@ -101,6 +105,13 @@ def build_plan():
     orders, _ = opus.read_paypal_orders(ROOT / "examples" / "paypal_sample.csv")
     catalog = opus.load_catalog(_temp_catalog_map())
     plan = opus.plan_paypal_batch(orders, catalog, None)
+
+    # Score every order at the rung the demo is set to, so the review screen
+    # shows what the machine concluded as well as what it matched.
+    from connectors import confidence as conf
+    assessed = dict((e.get("order_ref"), a)
+                    for e, a in conf.assess_plan(catalog=catalog, plan=plan,
+                                                 hold_below=DEMO_HOLD_BELOW))
     return [{
         "date": opus.format_date(e["order_date"]),
         "buyer": e["buyer"],
@@ -112,6 +123,10 @@ def build_plan():
         "files": len(e["files"]),
         "parts": [Path(str(f)).name for f in e["files"]],
         "status": e["disposition"],
+        "score": round(assessed[e["order_ref"]].score, 2),
+        "verdict": assessed[e["order_ref"]].verdict,
+        "signals": [s.as_dict() for s in assessed[e["order_ref"]].signals],
+        "reasons": list(assessed[e["order_ref"]].reasons),
     } for e in plan]
 
 
@@ -196,6 +211,7 @@ def main():
     ledger = read_ledger()
     data = {
         "version": read_version(),
+        "hold_below": DEMO_HOLD_BELOW,
         "paths": {
             "csv": "examples/paypal_sample.csv",
             "catalog": "examples/catalog_map.csv",

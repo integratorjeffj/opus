@@ -27,7 +27,9 @@ python3 opus.py --list-connectors
 | Catalog | `gdrive` — a shared Google Drive folder | **unverified** |
 | Order | `stripe`, `square`, `mailbox` | planned |
 | Catalog | `dropbox`, `onedrive` | planned |
-| Delivery | `portal`, `smtp`, `gmail`, `outlook` | planned |
+| Delivery | `portal` — expiring download link | **built** |
+| Delivery | `smtp` — any mail server | **built** |
+| Delivery | `gmail`, `outlook` | planned |
 
 Three states, and the distinction is the point:
 
@@ -216,7 +218,12 @@ Three rules the existing adapters follow:
 python3 tests/test_connectors.py
 ```
 
-83 checks, no pytest required. The network adapters are tested against recorded
+84 checks, no pytest required. `tests/test_phase3.py` adds 80 more for
+scoring, delivery and ledger integrity. The network adapters are tested against recorded
 payloads in `tests/fixtures/` — which covers the transformation most likely to
 drift when a provider renames a field, and leaves the HTTP handshake untested.
 That gap is stated rather than papered over with a green tick.
+
+## Delivery
+
+The expiring portal and SMTP are built. See **[OVERSIGHT.md](OVERSIGHT.md)** for how they work together, why the email carries a link rather than the files, and what the bundled portal server is and is not.

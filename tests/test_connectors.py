@@ -69,11 +69,19 @@ def test_registry():
     order_rows = [r for r in rows if r[0] == "order"]
     check("built adapters sort first", order_rows[0][3] == C.BUILT)
 
+    # delivery stopped being an empty socket in phase 3
+    built_delivery = [r for r in rows if r[0] == "delivery" and r[3] == C.BUILT]
+    check("delivery has built adapters",
+          {r[1] for r in built_delivery} == {"portal", "smtp"},
+          [r[1] for r in built_delivery])
+
 
 def test_planned_refuse():
     section("Planned adapters refuse rather than pretend")
+    # smtp and portal were planned in phase 2 and are built now; these are the
+    # ones still waiting on something the publisher has to obtain first.
     for kind, name in (("order", "stripe"), ("catalog", "dropbox"),
-                       ("delivery", "smtp")):
+                       ("delivery", "outlook")):
         cls = C.get(kind, name)
         inst = cls()
         ok, msg = inst.health()

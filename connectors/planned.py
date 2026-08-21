@@ -108,42 +108,22 @@ class OneDriveCatalog(_NotBuilt, CatalogSource):
 
 
 # ---------------------------------------------------------------------------
-# Delivery channels -- the whole kind is Phase 3
+# Delivery channels
+#
+# The expiring portal and SMTP are built; see delivery_portal and
+# delivery_smtp. These two are the provider-specific ones, and both are here
+# rather than built because both need something the publisher has to obtain
+# first -- a verified OAuth app, or a tenant administrator's consent.
 # ---------------------------------------------------------------------------
-
-@register
-class PortalDelivery(_NotBuilt, DeliveryChannel):
-    name = "portal"
-    label = "Expiring download link"
-    description = ("A per-order link that expires. Preferred over attachments: "
-                   "no size limit, better deliverability, and download "
-                   "telemetry that is itself a licensing signal.")
-    state = PLANNED
-    phase = "phase 3"
-
-    def deliver(self, order, files):
-        self._refuse()
-
-
-@register
-class SMTPDelivery(_NotBuilt, DeliveryChannel):
-    name = "smtp"
-    label = "Plain SMTP"
-    description = "Send through any mail server with a username and password."
-    state = PLANNED
-    phase = "phase 3"
-
-    def deliver(self, order, files):
-        self._refuse()
-
 
 @register
 class GmailDelivery(_NotBuilt, DeliveryChannel):
     name = "gmail"
     label = "Gmail / Google Workspace"
-    description = "Send as the publisher's own Gmail address."
+    description = ("Send as the publisher's own Gmail address via the API. "
+                   "Ordinary SMTP with an app password already works today.")
     state = PLANNED
-    phase = "phase 3"
+    phase = "later, only if sending as a shared mailbox turns out to matter"
 
     def deliver(self, order, files):
         self._refuse()
@@ -153,9 +133,11 @@ class GmailDelivery(_NotBuilt, DeliveryChannel):
 class GraphDelivery(_NotBuilt, DeliveryChannel):
     name = "outlook"
     label = "Outlook / Microsoft 365"
-    description = "Send through Microsoft Graph. Needs tenant admin consent."
+    description = ("Send through Microsoft Graph. Needs an Azure app "
+                   "registration and a tenant administrator's consent; "
+                   "ordinary SMTP works today without either.")
     state = PLANNED
-    phase = "phase 3"
+    phase = "later, once a tenant admin is available"
 
     def deliver(self, order, files):
         self._refuse()

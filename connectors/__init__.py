@@ -9,6 +9,7 @@ connector gallery able to list what exists without the GUI knowing any of their
 names.
 """
 
+from .confidence import assess, assess_plan, summarize  # noqa: F401
 from .base import (BUILT, PLANNED, UNVERIFIED, CatalogItem, CatalogSource,
                    Connector, ConnectorError, DeliveryChannel, NotConfigured,
                    OrderSource, available, describe, get, make_order, register,
@@ -16,6 +17,8 @@ from .base import (BUILT, PLANNED, UNVERIFIED, CatalogItem, CatalogSource,
 
 # Imported for their side effect: each module registers its adapters.
 from . import catalog_gdrive          # noqa: F401
+from . import delivery_portal         # noqa: F401
+from . import delivery_smtp           # noqa: F401
 from . import catalog_local           # noqa: F401
 from . import orders_paypal_api       # noqa: F401
 from . import orders_paypal_csv       # noqa: F401
@@ -28,4 +31,5 @@ __all__ = [
     "DeliveryChannel", "NotConfigured", "OrderSource",
     "available", "describe", "get", "make_order", "register",
     "validate_orders", "WatchedFolder", "watch",
+    "assess", "assess_plan", "summarize",
 ]
