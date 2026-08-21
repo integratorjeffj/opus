@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imprint · Licensing stamper for sheet music publishers</title>
+<meta name="description" content="Stamps every page of a sheet music PDF with the buyer's name, locks the file, and records the copy in a permanent ledger.">
+<style>
+:root{
+  --ink:#14162a;
+  --ink-2:#4d5372;
+  --ink-3:#7a7f98;
+  --paper:#f0f0ed;
+  --paper-2:#f8f8f6;
+  --stamp:#9c2b3a;
+  --verdigris:#356b61;
+  --amber:#8a6320;
+  --rule:#d3d3cd;
+  --sheet:#ffffff;
+  --shadow:0 1px 2px rgba(20,22,42,.06),0 8px 28px rgba(20,22,42,.08);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,monospace;
+}
+html[data-theme="dark"]{
+  --ink:#e8e8ee; --ink-2:#a5abc4; --ink-3:#767c95;
+  --paper:#0e1020; --paper-2:#171a2e;
+  --stamp:#d4707c; --verdigris:#6fb3a5; --amber:#c99a4a;
+  --rule:#2a2e46; --sheet:#1b1f34;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:16px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px}
+a{color:var(--ink);text-decoration-color:var(--stamp);text-underline-offset:3px}
+a:hover{color:var(--stamp)}
+:focus-visible{outline:2px solid var(--stamp);outline-offset:3px}
+
+/* ---- staff-line divider: five hairlines, the thing on every page ---- */
+.staff{margin:0;padding:6px 0}
+.staff span{display:block;height:1px;background:var(--rule);margin-bottom:4px}
+.staff span:last-child{margin-bottom:0}
+
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 14px
+}
+
+/* ---- masthead ---- */
+header.top{padding:26px 0 0}
+.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.mark{font-family:var(--serif);font-size:23px;letter-spacing:.02em}
+.mark b{font-weight:normal}
+.mark i{font-style:normal;color:var(--stamp)}
+.top-links{font-size:14px;color:var(--ink-2);display:flex;gap:18px;align-items:center}
+.tbtn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  background:none;border:1px solid var(--rule);color:var(--ink-2);
+  padding:5px 10px;cursor:pointer;border-radius:2px
+}
+.tbtn:hover{border-color:var(--stamp);color:var(--stamp)}
+
+/* ---- hero ---- */
+.hero{padding:54px 0 8px}
+h1{
+  font-family:var(--serif);font-weight:normal;
+  font-size:clamp(38px,6.2vw,66px);line-height:1.04;letter-spacing:-.015em;
+  margin:0 0 20px;max-width:15ch
+}
+h1 em{font-style:italic;color:var(--stamp)}
+.lede{font-size:19px;color:var(--ink-2);max-width:56ch;margin:0 0 30px}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.cta{
+  display:inline-block;padding:11px 20px;border-radius:2px;font-size:14.5px;
+  text-decoration:none;border:1px solid var(--ink);background:var(--ink);color:var(--paper)
+}
+.cta:hover{background:var(--stamp);border-color:var(--stamp);color:#fff}
+.cta.ghost{background:none;color:var(--ink);border-color:var(--rule)}
+.cta.ghost:hover{border-color:var(--stamp);color:var(--stamp);background:none}
+
+/* ---- signature: specimen page -> ledger row ---- */
+.thesis{
+  display:grid;grid-template-columns:minmax(0,300px) 30px minmax(0,1fr);
+  gap:0;align-items:center;margin:46px 0 10px
+}
+.sheet{
+  background:var(--sheet);border:1px solid var(--rule);box-shadow:var(--shadow);
+  aspect-ratio:8.5/11;padding:16px 14px;position:relative;overflow:hidden
+}
+.zone{
+  position:absolute;left:8px;right:8px;
+  border:1px dashed var(--stamp);border-radius:2px;padding:4px 5px
+}
+.zone.t{top:8px}
+.zone.b{bottom:8px}
+.stamped{
+  font-family:var(--sans);font-size:5.2px;line-height:1.35;
+  color:var(--stamp);text-align:center;margin:0
+}
+.tag{
+  position:absolute;right:-1px;font-family:var(--mono);font-size:7px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--stamp);
+  background:var(--sheet);padding:0 3px
+}
+.zone.t .tag{top:-7px}
+.zone.b .tag{bottom:-7px}
+.sheet-body{padding:26px 4px 30px;height:100%;display:flex;flex-direction:column;justify-content:center}
+.sheet-title{font-family:var(--serif);font-size:15px;text-align:center;margin:0 0 2px}
+.sheet-sub{font-family:var(--serif);font-style:italic;font-size:8px;text-align:center;color:var(--ink-2);margin:0 0 16px}
+.sys{margin-bottom:11px}
+.sys span{display:block;height:.7px;background:var(--ink-3);opacity:.55;margin-bottom:2.4px}
+.arrow{
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);color:var(--stamp);font-size:18px
+}
+.rowcard{
+  background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--verdigris);
+  padding:18px 20px;border-radius:2px
+}
+.rowcard h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 14px;font-weight:normal}
+.kv{display:grid;grid-template-columns:118px 1fr;gap:5px 14px;font-size:13.5px}
+.kv dt{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em;padding-top:2px}
+.kv dd{margin:0;font-family:var(--mono);font-size:12.5px;word-break:break-word}
+.kv dd.hl{color:var(--stamp)}
+.caption{font-size:13.5px;color:var(--ink-3);max-width:62ch;margin:16px 0 0}
+
+/* ---- sections ---- */
+section{padding:56px 0}
+h2{
+  font-family:var(--serif);font-weight:normal;font-size:clamp(27px,3.4vw,36px);
+  line-height:1.15;letter-spacing:-.01em;margin:0 0 16px;max-width:20ch
+}
+h2 em{font-style:italic;color:var(--stamp)}
+.body{max-width:64ch;color:var(--ink-2);font-size:16.5px}
+.body p{margin:0 0 16px}
+.body strong{color:var(--ink);font-weight:600}
+
+/* ---- before/after ---- */
+.ba{width:100%;border-collapse:collapse;margin-top:26px;font-size:14.5px}
+.ba th{
+  text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:normal;
+  padding:0 14px 9px 0;border-bottom:1px solid var(--rule)
+}
+.ba td{padding:13px 14px 13px 0;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-2)}
+.ba td:last-child{color:var(--ink);padding-right:0}
+.ba th:last-child{padding-right:0}
+
+/* ---- steps: a real sequence, so numbers carry meaning ---- */
+.steps{margin-top:30px;border-top:1px solid var(--rule)}
+.step{
+  display:grid;grid-template-columns:46px 1fr;gap:22px;
+  padding:22px 0;border-bottom:1px solid var(--rule)
+}
+.num{
+  font-family:var(--mono);font-size:12px;color:var(--stamp);
+  letter-spacing:.06em;padding-top:3px
+}
+.step h3{font-size:16.5px;margin:0 0 6px;font-weight:600}
+.step p{margin:0;color:var(--ink-2);font-size:15px;max-width:62ch}
+.step code{font-family:var(--mono);font-size:13px;background:var(--paper-2);padding:1px 5px;border:1px solid var(--rule);border-radius:2px}
+
+/* ---- review table ---- */
+.panel{
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;
+  box-shadow:var(--shadow);margin-top:28px;overflow:hidden
+}
+.panel-bar{
+  padding:10px 16px;border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap
+}
+.scroll{overflow-x:auto}
+.rev{width:100%;border-collapse:collapse;font-size:14px;min-width:660px}
+.rev th{
+  text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:normal;
+  padding:12px 16px;border-bottom:1px solid var(--rule);white-space:nowrap
+}
+.rev td{padding:12px 16px;border-bottom:1px solid var(--rule);vertical-align:top}
+.rev tr:last-child td{border-bottom:0}
+.rev .m{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.rev tr.on{background:rgba(53,107,97,.07)}
+.pill{
+  display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;padding:3px 8px;border-radius:2px;border:1px solid;white-space:nowrap
+}
+.p-ready{color:var(--verdigris);border-color:var(--verdigris)}
+.p-done{color:var(--ink-3);border-color:var(--rule)}
+.p-warn{color:var(--amber);border-color:var(--amber)}
+.p-drop{color:var(--stamp);border-color:var(--stamp)}
+.strike{text-decoration:line-through;color:var(--ink-3)}
+
+/* ---- schema ---- */
+.schema{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:28px
+}
+.field{background:var(--paper-2);padding:14px 16px}
+.field b{display:block;font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:normal;margin-bottom:4px}
+.field span{font-size:13px;color:var(--ink-3);line-height:1.5}
+
+/* ---- does / doesn't ---- */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px;margin-top:28px}
+.card{border-top:2px solid var(--verdigris);padding-top:16px}
+.card.no{border-top-color:var(--stamp)}
+.card h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;font-weight:normal;color:var(--verdigris)}
+.card.no h3{color:var(--stamp)}
+.card ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:15px}
+.card li{margin-bottom:8px}
+
+/* ---- code ---- */
+pre{
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;
+  padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13px;
+  line-height:1.7;color:var(--ink);margin:24px 0 0
+}
+pre .c{color:var(--ink-3)}
+
+/* ---- footer ---- */
+footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
+.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--ink-3)}
+.foot a{color:var(--ink-2)}
+.note{font-size:13.5px;color:var(--ink-3);margin-top:14px;max-width:64ch}
+
+@media (max-width:760px){
+  .thesis{grid-template-columns:1fr;gap:0}
+  .sheet{max-width:290px;margin:0 auto}
+  .arrow{padding:18px 0;transform:rotate(90deg)}
+  .kv{grid-template-columns:1fr;gap:2px 0}
+  .kv dt{padding-top:8px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="top-row">
+    <div class="mark"><b>Imprint</b> <i>·</i> <span style="font-size:14px;font-family:var(--sans);color:var(--ink-2)">sheet music licensing</span></div>
+    <div class="top-links">
+      <a href="https://github.com/integratorjeffj/opus">Repository</a>
+      <button class="tbtn" id="theme" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Every copy carries <em>a name.</em></h1>
+  <p class="lede">A small publisher sells engraved PDFs. Anyone can forward a PDF. So every copy goes out stamped with the buyer's name, locked against editing, and written into a ledger that says who received it and when.</p>
+  <div class="cta-row">
+    <a class="cta" href="https://github.com/integratorjeffj/opus">View the code</a>
+    <a class="cta ghost" href="https://github.com/integratorjeffj/opus/tree/main/samples/licensed">Open a stamped PDF</a>
+  </div>
+
+  <div class="thesis">
+    <div class="sheet">
+      <div class="zone t">
+        <span class="tag">Notice</span>
+        <p class="stamped">This music is licensed for use by First Baptist Church, Springfield. Distribution and/or use otherwise is prohibited by federal law.</p>
+      </div>
+      <div class="sheet-body">
+        <p class="sheet-title">Evening Bells</p>
+        <p class="sheet-sub">for SATB choir and organ</p>
+        <div class="sys"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="sys"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="sys"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="sys"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="sys"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="zone b">
+        <span class="tag">Date</span>
+        <p class="stamped">Licensed Purchase 8/18/26</p>
+      </div>
+    </div>
+
+    <div class="arrow">&rarr;</div>
+
+    <div class="rowcard">
+      <h3>The ledger row it produces</h3>
+      <dl class="kv">
+        <dt>licensee</dt><dd class="hl">First Baptist Church, Springfield</dd>
+        <dt>order_ref</dt><dd>5TX99001AA111111A</dd>
+        <dt>item_title</dt><dd>Evening Bells</dd>
+        <dt>license_date</dt><dd>8/18/26</dd>
+        <dt>output_file</dt><dd>Evening_Bells_organ__First_Baptist_Church_Springfield.pdf</dd>
+        <dt>pages</dt><dd>2</dd>
+        <dt>status</dt><dd>ok</dd>
+      </dl>
+    </div>
+  </div>
+  <p class="caption">One row per file issued. If a PDF turns up somewhere it should not be, the name printed on the page maps to a row, and the row gives you the buyer, the transaction, and the date.</p>
+</div>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
+  <p class="eyebrow">Where this started</p>
+  <h2>The stamping was solved. Everything <em>around</em> it was not.</h2>
+  <div class="body">
+    <p>A working script already handled one file: run a command, type the buyer's name, get a stamped and locked PDF. It did the hard part well.</p>
+    <p>But a choral octavo is a score, a choral score, and an organ part. A band piece can be twenty parts. The buyer's name got typed once per file, and the twentieth one had a typo in it. Nobody noticed an order had arrived until they checked. And nothing was recorded, so a leaked copy led nowhere.</p>
+  </div>
+
+  <table class="ba">
+    <thead><tr><th>The manual version</th><th>Imprint</th></tr></thead>
+    <tbody>
+      <tr><td>One file per command</td><td>A day of orders in one pass</td></tr>
+      <tr><td>Buyer name typed once per file</td><td>Read straight from the PayPal export</td></tr>
+      <tr><td>Owner password printed to the terminal, then gone</td><td>Recorded against the transaction it belongs to</td></tr>
+      <tr><td>No record of what was issued</td><td>Every copy logged, permanently</td></tr>
+      <tr><td>Overlapping exports reissue the same files</td><td>Already-issued orders detected and skipped</td></tr>
+      <tr><td>Refunds look identical to sales</td><td>Refunds, withdrawals and pending rows filtered out</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
+  <p class="eyebrow">The pipeline</p>
+  <h2>How an order becomes a licensed file.</h2>
+  <div class="body"><p>Five stages, in order. Nothing is written to disk until stage four is approved.</p></div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="num">01</div>
+      <div>
+        <h3>Read the export</h3>
+        <p>PayPal's activity CSV. Column names are matched by meaning rather than position, because PayPal has renamed its export headers several times over the years. Only completed payments survive: refunds, reversals, withdrawals, fees and pending rows are dropped before anyone sees the list.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">02</div>
+      <div>
+        <h3>Match the title to files</h3>
+        <p><code>Evening Bells - PDF Download</code> and <code>EVENING BELLS (score &amp; parts)</code> resolve to the same catalog entry. Titles are normalized, then matched exact, then by containment, then fuzzy at 86% similarity. Anything below that is reported as unmatched rather than guessed at, because issuing the wrong piece is worse than issuing nothing.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">03</div>
+      <div>
+        <h3>Check the ledger</h3>
+        <p>Transaction IDs already recorded as issued are skipped. This is the failure that would otherwise bite hardest: export date ranges overlap constantly, and without this check the same order quietly goes out twice under a fresh password.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">04</div>
+      <div>
+        <h3>Review</h3>
+        <p>Every order with its match, file count and disposition. Ready rows are preselected; anything else explains itself. Nothing is written until this is approved.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">05</div>
+      <div>
+        <h3>Stamp, lock, log</h3>
+        <p>Per file: the notice is merged into the page content stream, form fields are flattened, AES-256 encryption is applied with editing and copying blocked, and a ledger row is appended.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
+  <p class="eyebrow">Stage 04</p>
+  <h2>What the review screen shows.</h2>
+  <div class="body"><p>Run against a deliberately messy export: two title variants for one piece, a refund, a general withdrawal, a pending payment, and an order for a piece that is not in the catalog.</p></div>
+
+  <div class="panel">
+    <div class="panel-bar"><span>PayPal orders · 7 rows read</span><span>3 ready · 9 files</span></div>
+    <div class="scroll">
+    <table class="rev">
+      <thead>
+        <tr><th>Date</th><th>Buyer</th><th>Item title</th><th>Files</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr class="on"><td class="m">8/18/26</td><td>First Baptist Church, Springfield</td><td>Evening Bells - PDF Download</td><td class="m">3</td><td><span class="pill p-ready">Ready</span></td></tr>
+        <tr class="on"><td class="m">8/18/26</td><td>Maria Delgado</td><td>Fanfare for Two Trumpets</td><td class="m">3</td><td><span class="pill p-ready">Ready</span></td></tr>
+        <tr class="on"><td class="m">8/19/26</td><td>Northside High School Band</td><td>EVENING BELLS (score &amp; parts)</td><td class="m">3</td><td><span class="pill p-ready">Ready</span></td></tr>
+        <tr><td class="m">8/19/26</td><td>Grace Chapel</td><td>Processional in D</td><td class="m">0</td><td><span class="pill p-warn">No catalog match</span></td></tr>
+        <tr><td class="m">8/17/26</td><td>St. Andrew's Choir</td><td>Evening Bells</td><td class="m">3</td><td><span class="pill p-done">Already issued</span></td></tr>
+        <tr><td class="m strike">8/19/26</td><td class="strike">Maria Delgado</td><td class="strike">Fanfare for Two Trumpets</td><td class="m strike">&mdash;</td><td><span class="pill p-drop">Refund · dropped</span></td></tr>
+        <tr><td class="m strike">8/20/26</td><td class="strike">T. Whitfield</td><td class="strike">Evening Bells</td><td class="m strike">&mdash;</td><td><span class="pill p-drop">Pending · dropped</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+  <p class="caption">The two dropped rows never reach the publisher in the real app; they are shown here to make the filtering visible. <strong>Processional in D</strong> is flagged, not guessed at, and the exact title string is offered for pasting into the catalog map.</p>
+</section>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
+  <p class="eyebrow">The record</p>
+  <h2>One row per file, written the moment it is issued.</h2>
+  <div class="body"><p>This is what the original script was missing entirely. It does three jobs at once: it makes a leaked copy traceable, it prevents duplicate issuance, and it is the publisher's own record of what has been licensed.</p></div>
+
+  <div class="schema">
+    <div class="field"><b>stamped_at</b><span>When the file was issued</span></div>
+    <div class="field"><b>licensee</b><span>Exactly as printed on the page</span></div>
+    <div class="field"><b>order_ref</b><span>PayPal transaction ID</span></div>
+    <div class="field"><b>item_title</b><span>Catalog piece it belongs to</span></div>
+    <div class="field"><b>license_date</b><span>The date shown in the footer</span></div>
+    <div class="field"><b>source_file</b><span>Which master it came from</span></div>
+    <div class="field"><b>output_file</b><span>The copy that was delivered</span></div>
+    <div class="field"><b>pages</b><span>Sanity check against short output</span></div>
+    <div class="field"><b>owner_password</b><span>Needed only to change permissions later</span></div>
+    <div class="field"><b>status</b><span>ok, or FAILED with a reason</span></div>
+  </div>
+</section>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
+  <p class="eyebrow">Honest limits</p>
+  <h2>What the protection actually does.</h2>
+  <div class="cols">
+    <div class="card">
+      <h3>It does</h3>
+      <ul>
+        <li>Print the licensee's name on every page, merged into the page content so it is not a separate object to select and delete</li>
+        <li>Rotate the notice to match landscape and rotated pages, so it always reads the same way up as the music</li>
+        <li>Block editing, text extraction, commenting and page re-assembly with AES-256</li>
+        <li>Open and print normally, with no password for the buyer</li>
+      </ul>
+    </div>
+    <div class="card no">
+      <h3>It does not</h3>
+      <ul>
+        <li>Stop screenshots, phone photos, or re-printing to a fresh PDF</li>
+        <li>Survive a determined attacker with the right tools</li>
+        <li>Replace a license agreement</li>
+      </ul>
+      <p class="note">No PDF tool does these things. The deterrent is the name on the page: a shared copy stays traceable to whoever shared it, which is the point.</p>
+    </div>
+  </div>
+</section>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
+  <p class="eyebrow">Running it</p>
+  <h2>A window for daily use, a command line for everything else.</h2>
+  <div class="body"><p>The app window is how a publisher uses it. The command line is there for scripting, testing, and dry runs.</p></div>
+<pre><span class="c"># install</span>
+pip3 install pypdf reportlab pikepdf
+python3 imprint.py
+
+<span class="c"># build a catalog map by scanning a folder of pieces</span>
+python3 imprint.py --make-catalog ./catalog -o catalog_map.csv
+
+<span class="c"># see what an export would produce, without writing anything</span>
+python3 imprint.py --paypal examples/paypal_sample.csv \
+    --catalog examples/catalog_map.csv --out ./licensed --dry-run</pre>
+  <p class="caption">Python 3.9+. Built on pypdf, reportlab and pikepdf, with qpdf as an optional extra pass. MIT licensed.</p>
+</section>
+
+<footer>
+  <div class="foot">
+    <div>
+      <strong style="color:var(--ink)">Imprint</strong> · Built for a working publisher, then genericized for release.<br>
+      All names, titles, transaction IDs and sample music shown here are fictional.
+    </div>
+    <div>
+      <a href="https://github.com/integratorjeffj/opus">Repository</a> ·
+      <a href="https://github.com/integratorjeffj">GitHub</a> ·
+      <a href="https://www.linkedin.com/in/jeffjenkins3418">LinkedIn</a>
+    </div>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var btn=document.getElementById('theme'),root=document.documentElement;
+  function set(t){root.setAttribute('data-theme',t);btn.textContent=(t==='dark')?'Light':'Dark';
+    try{localStorage.setItem('imprint-theme',t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem('imprint-theme')}catch(e){}
+  set(saved||'light');
+  btn.addEventListener('click',function(){
+    set(root.getAttribute('data-theme')==='dark'?'light':'dark');});
+})();
+</script>
+</body>
+</html>
