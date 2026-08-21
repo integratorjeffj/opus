@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 """
-imprint.py - licensing stamper for small sheet music publishers
+opus.py - licensing stamper for small sheet music publishers
+
+An opus number is how a composer's work gets catalogued: an identifier,
+assigned once, that says precisely which piece you mean. This does the same for
+copies -- every file issued carries a name on the page and a row in the ledger,
+and stays identifiable for as long as it exists.
 
 Stamps sheet music PDFs with a per-licensee notice and purchase date, locks
 them against editing, and records every copy issued in a permanent ledger.
 Built to process a whole PayPal order, or a whole day of orders, at once.
+
+DEMO DATA ONLY
+    This is a portfolio build. Load fictional, redacted or otherwise
+    non-sensitive files -- never a live PayPal export, and no music you do not
+    hold the rights to. The app window asks you to confirm before anything can
+    be queued; the command line prompts before it stamps. Pass --demo-ack (or
+    set OPUS_DEMO_ACK=1) to confirm up front in a scripted run. Safe sample
+    data ships in examples/ and samples/.
 
 Double-click this file (or run it with no arguments) to open the app window.
 No terminal knowledge required.
@@ -31,11 +44,12 @@ WHAT IT DOES PER FILE
        under which order reference, and with which owner password.
 
 COMMAND LINE (optional -- the app window is the normal way to use this)
-    python3 imprint.py --licensee "First Baptist Church" \
+    python3 opus.py --licensee "First Baptist Church" \
         --out ./licensed --order PP-1042 --folder ./catalog/anthem
-    python3 imprint.py --paypal ~/Downloads/activity.csv \
+    python3 opus.py --paypal ~/Downloads/activity.csv \
         --catalog catalog_map.csv --out ./licensed
-    python3 imprint.py --make-catalog ./catalog -o catalog_map.csv
+    python3 opus.py --make-catalog ./catalog -o catalog_map.csv
+    python3 opus.py --paypal examples/paypal_sample.csv         --catalog examples/catalog_map.csv --out ./licensed --dry-run
 
 REQUIREMENTS
     pip3 install pypdf reportlab pikepdf
@@ -49,12 +63,14 @@ import argparse
 import csv
 import difflib
 import io
+import os
 import re
 import secrets
 import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import threading
 import traceback
 from datetime import date, datetime
@@ -116,6 +132,144 @@ PAYPAL_TYPE_DENYLIST = (
 
 # Fuzzy-match confidence below which a title is reported as unmatched.
 TITLE_MATCH_CUTOFF = 0.86
+
+
+# ---------------------------------------------------------------------------
+# Demo-data acknowledgement
+#
+# Opus is published as a portfolio demo. Anyone trying it out is handling a
+# payment export and a folder of PDFs, which in the real world means buyer
+# names, email addresses and copyrighted engravings. The gate below makes the
+# operator say so explicitly, before a single file is chosen.
+# ---------------------------------------------------------------------------
+
+ACK_TITLE = "Use demo data only"
+
+ACK_BODY = (
+    "Opus is a demonstration build.\n\n"
+    "A PayPal activity export contains real buyer names, email addresses and "
+    "transaction IDs. A catalog folder contains copyrighted engravings. "
+    "Neither belongs in a demo.\n\n"
+    "Before you continue, confirm that the files you are about to load are "
+    "fictional, redacted, or otherwise non-sensitive, and that you have the "
+    "right to use any music you point Opus at.\n\n"
+    "Sample data that is safe to use ships in examples/ and samples/."
+)
+
+ACK_CHECKBOX = ("I confirm I will only load fictional or non-sensitive "
+                "material, and only music I have the right to use.")
+
+ACK_ENV = "OPUS_DEMO_ACK"
+
+
+def _ack_preapproved(force=False):
+    if force:
+        return True
+    return os.environ.get(ACK_ENV, "").strip().lower() in ("1", "true", "yes")
+
+
+def demo_ack_cli(force=False):
+    """Confirm demo-data handling before anything is written.
+
+    Returns True to proceed. Honours --demo-ack and the OPUS_DEMO_ACK
+    environment variable so scripted runs are not blocked, and refuses rather
+    than assumes when there is no terminal to prompt at.
+    """
+    if _ack_preapproved(force):
+        return True
+
+    rule = "-" * 72
+    print("\n" + rule)
+    print(ACK_TITLE.upper())
+    print(rule)
+    for para in ACK_BODY.split("\n\n"):
+        print(textwrap.fill(para, 72))
+        print()
+    print(rule)
+
+    if not sys.stdin.isatty():
+        print("No terminal available to confirm at. Re-run with --demo-ack, or\n"
+              "set {}=1, once the above is true of your input.".format(ACK_ENV))
+        return False
+
+    try:
+        reply = input("Type 'yes' to confirm the above, anything else to stop: ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    if reply.strip().lower() in ("y", "yes"):
+        print()
+        return True
+    print("Stopped. Nothing was written.\n")
+    return False
+
+
+def demo_ack_dialog(tk, ttk, parent):
+    """Modal acknowledgement shown before the main window becomes usable.
+
+    Returns True only if the operator ticked the box and pressed Continue.
+    """
+    if _ack_preapproved():
+        return True
+
+    dlg = tk.Toplevel(parent)
+    dlg.title(ACK_TITLE)
+    dlg.resizable(False, False)
+    dlg.transient(parent)
+
+    frame = ttk.Frame(dlg, padding=18)
+    frame.pack(fill="both", expand=True)
+
+    ttk.Label(frame, text=ACK_TITLE,
+              font=("Helvetica", 14, "bold")).pack(anchor="w")
+    ttk.Separator(frame, orient="horizontal").pack(fill="x", pady=(8, 10))
+    ttk.Label(frame, text=ACK_BODY, wraplength=470,
+              justify="left").pack(anchor="w")
+    ttk.Separator(frame, orient="horizontal").pack(fill="x", pady=(14, 10))
+
+    agreed = tk.BooleanVar(value=False)
+    result = {"ok": False}
+
+    check = ttk.Checkbutton(frame, text=ACK_CHECKBOX, variable=agreed,
+                            onvalue=True, offvalue=False)
+    check.pack(anchor="w")
+
+    row = ttk.Frame(frame)
+    row.pack(fill="x", pady=(14, 0))
+
+    def do_quit():
+        result["ok"] = False
+        dlg.destroy()
+
+    def do_continue():
+        if agreed.get():
+            result["ok"] = True
+            dlg.destroy()
+
+    ttk.Button(row, text="Quit", command=do_quit).pack(side="right", padx=(8, 0))
+    go_btn = ttk.Button(row, text="Continue", command=do_continue,
+                        state="disabled")
+    go_btn.pack(side="right")
+
+    def sync(*_):
+        go_btn.configure(state=("normal" if agreed.get() else "disabled"))
+
+    agreed.trace_add("write", sync)
+
+    dlg.protocol("WM_DELETE_WINDOW", do_quit)
+    dlg.bind("<Escape>", lambda _e: do_quit())
+
+    dlg.update_idletasks()
+    px, py = parent.winfo_rootx(), parent.winfo_rooty()
+    pw, ph = parent.winfo_width(), parent.winfo_height()
+    w, h = dlg.winfo_reqwidth(), dlg.winfo_reqheight()
+    dlg.geometry("+{}+{}".format(px + max((pw - w) // 2, 0),
+                                 py + max((ph - h) // 3, 0)))
+
+    dlg.grab_set()
+    check.focus_set()
+    parent.wait_window(dlg)
+    return result["ok"]
 
 
 # ---------------------------------------------------------------------------
@@ -670,14 +824,24 @@ def launch_gui():
              "catalog_path": "", "paypal_path": ""}
 
     root = tk.Tk()
-    root.title("Imprint - Sheet Music Licensing")
+    root.title("Opus - Sheet Music Licensing")
     root.geometry("880x680")
     root.minsize(780, 600)
+
+    # Nothing can be queued until the operator acknowledges that the material
+    # they are about to load is fictional or otherwise non-sensitive. The main
+    # window stays hidden behind the dialog so there is no way around it.
+    root.withdraw()
+    if not demo_ack_dialog(tk, ttk, root):
+        root.destroy()
+        print("Demo-data acknowledgement declined. Nothing was loaded.")
+        return 1
+    root.deiconify()
 
     main = ttk.Frame(root, padding=14)
     main.pack(fill="both", expand=True)
 
-    ttk.Label(main, text="Imprint",
+    ttk.Label(main, text="Opus",
               font=("Helvetica", 16, "bold")).pack(anchor="w")
     ttk.Label(main, text="Stamp, flatten and lock sheet music PDFs, then log "
                          "who received what.",
@@ -1048,6 +1212,10 @@ def main(argv=None):
     parser.add_argument("-o", "--output-csv", type=Path, default=Path("catalog_map.csv"),
                         help="Where --make-catalog writes its map")
     parser.add_argument("--gui", action="store_true", help="Open the app window")
+    parser.add_argument("--demo-ack", action="store_true",
+                        help="Confirm up front that the input is fictional "
+                             "or non-sensitive (skips the interactive "
+                             "prompt; OPUS_DEMO_ACK=1 does the same)")
     args = parser.parse_args(argv)
 
     if args.gui:
@@ -1087,6 +1255,9 @@ def main(argv=None):
             print("\nDry run -- nothing stamped.")
             return 0
 
+        if not demo_ack_cli(args.demo_ack):
+            return 2
+
         records, ledger, summary = run_paypal_plan(
             plan, args.out,
             progress=lambda i, n, name: print("[{}/{}] {}".format(i, n, name)))
@@ -1108,6 +1279,9 @@ def main(argv=None):
         parser.error("No source PDFs found.")
 
     lic_date = parse_date_arg(args.license_date) if args.license_date else date.today()
+
+    if not demo_ack_cli(args.demo_ack):
+        return 2
 
     records, ledger = run_batch(
         sources, args.licensee, args.out, license_date=lic_date,

@@ -1,0 +1,13 @@
+# Default: let Git normalise line endings for text.
+* text=auto
+
+# Binary assets. Without this, core.autocrlf rewrites CR/LF byte pairs inside
+# the PDF streams on checkout and the files no longer open.
+*.pdf binary
+
+# Keep the sample data byte-identical across platforms so the committed ledger
+# always matches the committed output.
+*.csv text eol=lf
+*.py  text eol=lf
+*.md  text eol=lf
+*.html text eol=lf

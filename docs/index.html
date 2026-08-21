@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Imprint · Licensing stamper for sheet music publishers</title>
+<title>Opus · Licensing stamper for sheet music publishers</title>
 <meta name="description" content="Stamps every page of a sheet music PDF with the buyer's name, locks the file, and records the copy in a permanent ledger.">
 <style>
 :root{
@@ -226,6 +226,13 @@ footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
 .foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--ink-3)}
 .foot a{color:var(--ink-2)}
 .note{font-size:13.5px;color:var(--ink-3);margin-top:14px;max-width:64ch}
+.demo-note{display:flex;gap:12px;align-items:flex-start;max-width:66ch;
+  margin:22px 0 4px;padding:13px 16px;border:1px solid var(--rule);
+  border-left:3px solid var(--amber);border-radius:5px;
+  background:var(--paper-2);font-family:var(--sans);font-size:13.5px;
+  line-height:1.55;color:var(--ink-2)}
+.demo-note b{color:var(--ink);font-weight:600}
+.demo-note .dn-ico{flex:0 0 auto;font-size:15px;line-height:1.4;color:var(--amber)}
 
 @media (max-width:760px){
   .thesis{grid-template-columns:1fr;gap:0}
@@ -243,7 +250,7 @@ footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
 
 <header class="top">
   <div class="top-row">
-    <div class="mark"><b>Imprint</b> <i>·</i> <span style="font-size:14px;font-family:var(--sans);color:var(--ink-2)">sheet music licensing</span></div>
+    <div class="mark"><b>Opus</b> <i>·</i> <span style="font-size:14px;font-family:var(--sans);color:var(--ink-2)">sheet music licensing</span></div>
     <div class="top-links">
       <a href="https://github.com/integratorjeffj/opus">Repository</a>
       <button class="tbtn" id="theme" type="button">Dark</button>
@@ -258,6 +265,14 @@ footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
     <a class="cta" href="https://github.com/integratorjeffj/opus">View the code</a>
     <a class="cta ghost" href="https://github.com/integratorjeffj/opus/tree/main/samples/licensed">Open a stamped PDF</a>
   </div>
+
+  <p class="demo-note">
+    <span class="dn-ico" aria-hidden="true">&#9888;</span>
+    <span><b>Demo data only.</b> This is a portfolio build. Point it at fictional,
+    redacted or otherwise non-sensitive files &mdash; never a live PayPal export,
+    and no music you do not hold the rights to. Opus makes you confirm this
+    before it will write anything. Safe sample data ships in the repository.</span>
+  </p>
 
   <div class="thesis">
     <div class="sheet">
@@ -301,6 +316,18 @@ footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
 <div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
 
 <section>
+  <p class="eyebrow">The name</p>
+  <h2>Why it is called <em>Opus.</em></h2>
+  <div class="body">
+    <p>An opus number is how a composer's work gets catalogued. Op. 27, No. 2 is not a description of the music &mdash; it is an identifier, assigned once, that lets anyone say precisely which piece they mean two hundred years later. Publishers have numbered works this way since the seventeenth century for one reason: without a catalogue, you cannot tell one copy of a thing from another.</p>
+    <p>That is this problem, moved down a level. A publisher does not only need to know which <em>piece</em> went out. They need to know which <em>copy</em>, to whom, under which order, on what date.</p>
+    <p>So Opus does for copies what opus numbers did for works. Every file it issues carries a name on the page and a row in the ledger, and stays identifiable for as long as it exists.</p>
+  </div>
+</section>
+
+<div class="staff" role="separator" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section>
   <p class="eyebrow">Where this started</p>
   <h2>The stamping was solved. Everything <em>around</em> it was not.</h2>
   <div class="body">
@@ -309,7 +336,7 @@ footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
   </div>
 
   <table class="ba">
-    <thead><tr><th>The manual version</th><th>Imprint</th></tr></thead>
+    <thead><tr><th>The manual version</th><th>Opus</th></tr></thead>
     <tbody>
       <tr><td>One file per command</td><td>A day of orders in one pass</td></tr>
       <tr><td>Buyer name typed once per file</td><td>Read straight from the PayPal export</td></tr>
@@ -452,21 +479,25 @@ footer{padding:44px 0 60px;border-top:1px solid var(--rule);margin-top:20px}
   <div class="body"><p>The app window is how a publisher uses it. The command line is there for scripting, testing, and dry runs.</p></div>
 <pre><span class="c"># install</span>
 pip3 install pypdf reportlab pikepdf
-python3 imprint.py
+python3 opus.py
 
 <span class="c"># build a catalog map by scanning a folder of pieces</span>
-python3 imprint.py --make-catalog ./catalog -o catalog_map.csv
+python3 opus.py --make-catalog ./catalog -o catalog_map.csv
 
 <span class="c"># see what an export would produce, without writing anything</span>
-python3 imprint.py --paypal examples/paypal_sample.csv \
-    --catalog examples/catalog_map.csv --out ./licensed --dry-run</pre>
+python3 opus.py --paypal examples/paypal_sample.csv \
+    --catalog examples/catalog_map.csv --out ./licensed --dry-run
+
+<span class="c"># a scripted run, confirming the demo-data terms up front</span>
+python3 opus.py --paypal examples/paypal_sample.csv     --catalog examples/catalog_map.csv --out ./licensed --demo-ack</pre>
+  <p class="note">Before the app window opens, a dialog asks you to confirm that what you are about to load is fictional or otherwise non-sensitive; nothing can be queued until it is ticked. On the command line the same confirmation is prompted for before anything is stamped &mdash; <code>--dry-run</code> is exempt, since it writes nothing, and <code>--demo-ack</code> or <code>OPUS_DEMO_ACK=1</code> answers it for scripted runs. With no terminal to prompt at and no acknowledgement given, Opus refuses the run rather than assuming consent.</p>
   <p class="caption">Python 3.9+. Built on pypdf, reportlab and pikepdf, with qpdf as an optional extra pass. MIT licensed.</p>
 </section>
 
 <footer>
   <div class="foot">
     <div>
-      <strong style="color:var(--ink)">Imprint</strong> · Built for a working publisher, then genericized for release.<br>
+      <strong style="color:var(--ink)">Opus</strong> · Built for a working publisher, then genericized for release.<br>
       All names, titles, transaction IDs and sample music shown here are fictional.
     </div>
     <div>
@@ -483,8 +514,8 @@ python3 imprint.py --paypal examples/paypal_sample.csv \
 (function(){
   var btn=document.getElementById('theme'),root=document.documentElement;
   function set(t){root.setAttribute('data-theme',t);btn.textContent=(t==='dark')?'Light':'Dark';
-    try{localStorage.setItem('imprint-theme',t)}catch(e){}}
-  var saved=null;try{saved=localStorage.getItem('imprint-theme')}catch(e){}
+    try{localStorage.setItem('opus-theme',t)}catch(e){}}
+  var saved=null;try{saved=localStorage.getItem('opus-theme')}catch(e){}
   set(saved||'light');
   btn.addEventListener('click',function(){
     set(root.getAttribute('data-theme')==='dark'?'light':'dark');});

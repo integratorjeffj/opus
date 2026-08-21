@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
 .DS_Store
-licensed/
+
+# Working output folder at the repo root. The committed demo output under
+# samples/licensed/ is deliberately tracked, so this is anchored with a
+# leading slash rather than matching "licensed/" at any depth.
+/licensed/
