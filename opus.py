@@ -135,6 +135,102 @@ TITLE_MATCH_CUTOFF = 0.86
 
 
 # ---------------------------------------------------------------------------
+# Release identity, bundled resources and update checks
+#
+# When PyInstaller freezes this file into an app, the source tree is gone and
+# the bundled data lives in a temporary extraction directory. resource_path()
+# is the single place that difference is handled, so the rest of the module can
+# keep referring to "examples/paypal_sample.csv" and be right either way.
+# ---------------------------------------------------------------------------
+
+__version__ = "1.0.0"
+
+APP_NAME = "Opus"
+RELEASES_API = "https://api.github.com/repos/integratorjeffj/opus/releases/latest"
+RELEASES_PAGE = "https://github.com/integratorjeffj/opus/releases/latest"
+NO_UPDATE_ENV = "OPUS_NO_UPDATE_CHECK"
+
+
+def is_frozen():
+    """True when running from a PyInstaller-built app rather than source."""
+    return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+
+
+def resource_path(relative):
+    """Resolve a path to data shipped alongside the code.
+
+    Frozen: PyInstaller's extraction dir. Source: the folder holding this file.
+    """
+    if is_frozen():
+        base = Path(sys._MEIPASS)
+    else:
+        base = Path(__file__).resolve().parent
+    return base / relative
+
+
+def bundled_demo_paths():
+    """The sample PayPal export and catalog map shipped inside the app.
+
+    Returns (paypal_csv, catalog_csv), or (None, None) if they are not present
+    -- a source checkout with the folders deleted, for instance.
+    """
+    paypal = resource_path(Path("examples") / "paypal_sample.csv")
+    catalog = resource_path(Path("examples") / "catalog_map.csv")
+    if paypal.is_file() and catalog.is_file():
+        return paypal, catalog
+    return None, None
+
+
+def _parse_version(text):
+    """'v1.2.3' or '1.2.3' -> (1, 2, 3). Trailing junk is ignored."""
+    nums = re.findall(r"\d+", (text or "").strip())
+    return tuple(int(n) for n in nums[:3]) or (0,)
+
+
+def check_for_update(timeout=4.0):
+    """Ask GitHub whether a newer release exists.
+
+    Returns a version string when one is available, None otherwise or on any
+    failure. Deliberately quiet: a version check is never worth an error
+    dialog, and it must never be the reason the app fails to start.
+    """
+    if os.environ.get(NO_UPDATE_ENV, "").strip().lower() in ("1", "true", "yes"):
+        return None
+    try:
+        import json
+        from urllib.request import Request, urlopen
+        req = Request(RELEASES_API, headers={
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "{}/{}".format(APP_NAME, __version__),
+        })
+        with urlopen(req, timeout=timeout) as resp:
+            tag = json.load(resp).get("tag_name", "")
+        if tag and _parse_version(tag) > _parse_version(__version__):
+            return tag.lstrip("vV")
+    except Exception:
+        pass
+    return None
+
+
+def check_for_update_async(callback):
+    """Run check_for_update off the main thread and hand the result back.
+
+    The callback is invoked with the version string, or not at all. Used by the
+    app window so a slow network never delays the UI appearing.
+    """
+    def worker():
+        found = check_for_update()
+        if found:
+            try:
+                callback(found)
+            except Exception:
+                pass
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+    return t
+
+
+# ---------------------------------------------------------------------------
 # Demo-data acknowledgement
 #
 # Opus is published as a portfolio demo. Anyone trying it out is handling a
@@ -824,7 +920,7 @@ def launch_gui():
              "catalog_path": "", "paypal_path": ""}
 
     root = tk.Tk()
-    root.title("Opus - Sheet Music Licensing")
+    root.title("{} {} - Sheet Music Licensing".format(APP_NAME, __version__))
     root.geometry("880x680")
     root.minsize(780, 600)
 
@@ -841,8 +937,32 @@ def launch_gui():
     main = ttk.Frame(root, padding=14)
     main.pack(fill="both", expand=True)
 
-    ttk.Label(main, text="Opus",
-              font=("Helvetica", 16, "bold")).pack(anchor="w")
+    head = ttk.Frame(main)
+    head.pack(fill="x")
+    ttk.Label(head, text=APP_NAME,
+              font=("Helvetica", 16, "bold")).pack(side="left")
+    ttk.Label(head, text="v" + __version__,
+              foreground="#777").pack(side="left", padx=(8, 0), pady=(5, 0))
+
+    update_var = tk.StringVar(value="")
+    update_lbl = ttk.Label(head, textvariable=update_var, foreground="#8a6320",
+                           cursor="hand2")
+    update_lbl.pack(side="right", pady=(5, 0))
+
+    def open_releases(_event=None):
+        if update_var.get():
+            import webbrowser
+            webbrowser.open(RELEASES_PAGE)
+
+    update_lbl.bind("<Button-1>", open_releases)
+
+    def announce_update(version):
+        # Called from the update thread; hop back to the UI thread to touch tk.
+        root.after(0, lambda: update_var.set(
+            "Version {} is available - click to download".format(version)))
+
+    check_for_update_async(announce_update)
+
     ttk.Label(main, text="Stamp, flatten and lock sheet music PDFs, then log "
                          "who received what.",
               foreground="#555").pack(anchor="w", pady=(0, 10))
@@ -972,6 +1092,29 @@ def launch_gui():
     ttk.Button(pick, text="Build catalog map from a folder...",
                command=build_catalog).grid(row=2, column=1, sticky="w",
                                            padx=10, pady=(4, 0))
+
+    def load_sample():
+        sample_paypal, sample_catalog = bundled_demo_paths()
+        if not sample_paypal:
+            messagebox.showinfo(
+                "Sample data not found",
+                "This build does not include the examples folder.")
+            return
+        state["paypal_path"] = str(sample_paypal)
+        state["catalog_path"] = str(sample_catalog)
+        paypal_var.set(str(sample_paypal))
+        catalog_var.set(str(sample_catalog))
+        messagebox.showinfo(
+            "Sample order loaded",
+            "Loaded the fictional PayPal export and its catalog map.\n\n"
+            "It contains three good orders, one piece that is not in the "
+            "catalog, plus a refund, a withdrawal and a pending payment that "
+            "should all be filtered out.\n\nPress Review to see the plan.")
+
+    if bundled_demo_paths()[0]:
+        ttk.Button(pick, text="Try it with the sample order",
+                   command=load_sample).grid(row=3, column=1, sticky="w",
+                                             padx=10, pady=(6, 0))
     pick.columnconfigure(1, weight=1)
 
     review = ttk.LabelFrame(tab2, text="Review before stamping", padding=10)
@@ -1216,7 +1359,28 @@ def main(argv=None):
                         help="Confirm up front that the input is fictional "
                              "or non-sensitive (skips the interactive "
                              "prompt; OPUS_DEMO_ACK=1 does the same)")
+    parser.add_argument("--demo", action="store_true",
+                        help="Use the fictional PayPal export and catalog "
+                             "map bundled with the app")
+    parser.add_argument("--version", action="version",
+                        version="{} {}".format(APP_NAME, __version__))
+    parser.add_argument("--no-update-check", action="store_true",
+                        help="Skip the check for a newer release")
     args = parser.parse_args(argv)
+
+    if args.no_update_check:
+        os.environ[NO_UPDATE_ENV] = "1"
+
+    if args.demo:
+        demo_paypal, demo_catalog = bundled_demo_paths()
+        if not demo_paypal:
+            parser.error("--demo needs the bundled examples/ folder, which "
+                         "is missing from this build.")
+        args.paypal = args.paypal or demo_paypal
+        args.catalog = args.catalog or demo_catalog
+        if not args.out:
+            parser.error("--demo still needs --out, so you choose where the "
+                         "stamped files land.")
 
     if args.gui:
         return launch_gui()

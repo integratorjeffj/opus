@@ -1,0 +1,184 @@
+name: Build release
+
+# Tag a commit v1.0.0 and push the tag to cut a release. The manual trigger
+# builds the same artifacts without publishing anything, which is the safe way
+# to check a packaging change before it is tagged.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    # Evaluated once at job level so the signing steps can branch on whether
+    # certificates exist. A step's own `env:` is not visible to its `if:`.
+    env:
+      HAS_WIN_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
+      HAS_MAC_CERT: ${{ secrets.MACOS_CERT_P12 != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows
+            artifact: Opus-windows
+          - os: macos-latest
+            label: macOS
+            artifact: Opus-macos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pypdf reportlab pikepdf Pillow pyinstaller
+
+      - name: Verify the engine before packaging it
+        shell: bash
+        run: |
+          # A build that ships a broken stamper is worse than no build.
+          python opus.py --version
+          python opus.py --paypal examples/paypal_sample.csv \
+            --catalog examples/catalog_map.csv --out ./_ci --dry-run
+          python opus.py --demo --out ./_ci_demo --demo-ack --no-update-check
+          python - <<'PY'
+          import glob, sys, pypdf
+          files = sorted(glob.glob("./_ci_demo/*.pdf"))
+          assert len(files) == 9, "expected 9 stamped files, got %d" % len(files)
+          for f in files:
+              r = pypdf.PdfReader(f)
+              assert r.is_encrypted, f
+              r.decrypt("")
+              assert "licensed for use by" in (r.pages[0].extract_text() or ""), f
+          print("engine OK -- 9 files stamped, encrypted and noticed")
+          PY
+
+      - name: Build the app
+        run: python packaging/build.py --clean
+
+      # ---------------------------------------------------------------- Windows
+      - name: Sign the Windows executable
+        if: runner.os == 'Windows' && env.HAS_WIN_CERT == 'true'
+        env:
+          CERT: ${{ secrets.WINDOWS_CERT_PFX }}
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'cert.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERT))
+          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' |
+                      Sort-Object FullName | Select-Object -Last 1
+          & $signtool.FullName sign /fd SHA256 /f $pfx /p $env:CERT_PASSWORD `
+            /tr http://timestamp.digicert.com /td SHA256 dist\Opus.exe
+          Remove-Item $pfx -Force
+
+      - name: Note the missing Windows certificate
+        if: runner.os == 'Windows' && env.HAS_WIN_CERT != 'true'
+        shell: bash
+        run: |
+          echo "::warning title=Unsigned Windows build::WINDOWS_CERT_PFX is not set, so Opus.exe is unsigned. Users will see a SmartScreen warning on first run. See BUILDING.md."
+
+      # ------------------------------------------------------------------ macOS
+      - name: Sign and notarize the macOS app
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
+        env:
+          CERT: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          KEYCHAIN_PW=$(uuidgen)
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          echo "$CERT" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+
+          codesign --force --deep --options runtime --timestamp \
+            --sign "$SIGN_IDENTITY" dist/Opus.app
+
+          ditto -c -k --keepParent dist/Opus.app "$RUNNER_TEMP/Opus.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/Opus.zip" \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" --wait
+          xcrun stapler staple dist/Opus.app
+
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security delete-keychain "$KEYCHAIN"
+
+      - name: Note the missing Apple certificate
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT != 'true'
+        run: |
+          echo "::warning title=Unsigned macOS build::MACOS_CERT_P12 is not set, so Opus.app is neither signed nor notarized. Gatekeeper will refuse to open it. See BUILDING.md."
+
+      # ------------------------------------------------------------- packaging
+      - name: Package the artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp dist/Opus.exe out/
+          else
+            ditto -c -k --keepParent dist/Opus.app out/Opus-macos.zip
+          fi
+          cp README.md LICENSE out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: out/
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect the binaries
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name 'Opus.exe' -o -name 'Opus-macos.zip' \) \
+            -exec cp {} release/ \;
+          ls -la release
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          draft: true
+          generate_release_notes: true
+          body: |
+            Download the build for your machine, then double-click it.
+
+            - **Windows** — `Opus.exe`
+            - **macOS** — `Opus-macos.zip`, unzip and move Opus.app to Applications
+
+            The fictional sample catalogue is bundled inside the app, so you can
+            open the PayPal Orders tab, press **Try it with the sample order**,
+            and watch a stamped, locked PDF come out without touching a real order.
+
+            Opus asks you to confirm you are using non-sensitive material before
+            it writes anything.

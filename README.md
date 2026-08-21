@@ -146,15 +146,31 @@ What to use instead of real data: `examples/` for a messy-but-fictional PayPal
 export, and `samples/catalog/` for a small catalogue of fictional scores. Both
 ship in this repo.
 
-## Running it
+## Getting it
+
+**[Download the latest release](https://github.com/integratorjeffj/opus/releases/latest)**
+-- `Opus.exe` for Windows, `Opus-macos.zip` for macOS. One file, no Python, no
+install. Double-click it.
+
+The fictional catalogue is bundled inside the app, so you can open the PayPal
+Orders tab, press **Try it with the sample order**, and watch stamped and
+locked PDFs come out without touching a real order or downloading anything
+else.
+
+Builds are unsigned until certificates are in place, so the first run shows a
+SmartScreen warning on Windows, and macOS Gatekeeper will refuse the app
+outright. [BUILDING.md](BUILDING.md) covers what signing costs and how the
+release pipeline handles it.
+
+## Running it from source
 
 ```bash
 pip3 install pypdf reportlab pikepdf
 python3 opus.py
 ```
 
-That opens the app window, which is how it is meant to be used day to day. The
-command line is there for scripting and testing:
+That opens the same app window. The command line is there for scripting and
+testing:
 
 ```bash
 # Build a catalog map by scanning a folder of pieces
@@ -167,6 +183,9 @@ python3 opus.py --paypal examples/paypal_sample.csv \
 # One-off license outside of PayPal
 python3 opus.py --licensee "Grace Chapel" --out ./licensed \
     --folder "./catalog/Evening Bells"
+
+# Run the whole bundled demo, start to finish
+python3 opus.py --demo --out ./licensed --demo-ack
 ```
 
 `qpdf` is optional. Without it the extra form-flatten pass is skipped, which is
@@ -192,7 +211,8 @@ owner passwords in the sample ledger unlock nothing outside this repo.
 
 - [ ] Auto-email delivery with the send recorded in the ledger
 - [ ] Watch folder, so dropping an export in runs the batch on a schedule
-- [ ] Packaged `.app` and `.exe` via PyInstaller, removing the Python install
+- [x] Packaged `.app` and `.exe` via PyInstaller, removing the Python install
+- [ ] Code signing and notarization, so a first run is not a warning
 - [ ] Per-page notice placement rules for pieces with tight title blocks
 - [ ] Shopify and Square export adapters alongside PayPal
 

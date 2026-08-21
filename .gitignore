@@ -6,3 +6,10 @@ __pycache__/
 # samples/licensed/ is deliberately tracked, so this is anchored with a
 # leading slash rather than matching "licensed/" at any depth.
 /licensed/
+
+# PyInstaller build output. The spec and the build script are tracked; what
+# they produce is not.
+/build/
+/dist/
+packaging/version_info.txt
+packaging/opus.icns
