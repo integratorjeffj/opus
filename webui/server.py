@@ -113,6 +113,9 @@ def build_handler(session, port):
 
         def _send(self, code, body, ctype="application/json", extra=None):
             raw = body if isinstance(body, bytes) else str(body).encode("utf-8")
+            if any(k.lower() == "connection" and v.lower() == "close"
+                   for k, v in (extra or [])):
+                self.close_connection = True
             self.send_response(code)
             self._headers(ctype, len(raw), extra)
             self.end_headers()
@@ -185,9 +188,21 @@ def build_handler(session, port):
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 length = 0
+
             if length > MAX_BODY:
-                return self._json(413, {"error": "That request is too large."})
-            raw = self.rfile.read(length) if length else b""
+                # Answering without reading the body leaves the client still
+                # writing into a socket nobody is draining, and it sees a
+                # connection reset instead of the message. Drain a bounded
+                # amount so the 413 actually arrives, then close rather than
+                # keeping a half-read connection alive.
+                self._drain(length)
+                return self._json(413, {"error": "That request is too large."},
+                                  extra=[("Connection", "close")])
+
+            raw = self._read_exactly(length) if length else b""
+            if raw is None:
+                return self._json(400, {"error": "The request ended early."},
+                                  extra=[("Connection", "close")])
             try:
                 body = json.loads(raw.decode("utf-8")) if raw else {}
             except (UnicodeDecodeError, json.JSONDecodeError):
@@ -195,6 +210,26 @@ def build_handler(session, port):
 
             status, payload = self._dispatch("POST", path, body)
             return self._json(status, payload)
+
+        def _drain(self, length):
+            """Read and discard an unwanted body, up to a sane ceiling."""
+            remaining = min(length, MAX_BODY * 4)
+            while remaining > 0:
+                chunk = self.rfile.read(min(65536, remaining))
+                if not chunk:
+                    return
+                remaining -= len(chunk)
+
+        def _read_exactly(self, length):
+            """Read the whole body, or None if the client stopped early."""
+            parts, remaining = [], length
+            while remaining > 0:
+                chunk = self.rfile.read(min(65536, remaining))
+                if not chunk:
+                    return None
+                parts.append(chunk)
+                remaining -= len(chunk)
+            return b"".join(parts)
 
         def _dispatch(self, method, path, body):
             # One writer at a time: the config is a single file and a run

@@ -455,10 +455,15 @@ def test_server_guards():
         check("a POST to a non-api path is a 404",
               s.request("/nope", token=token, method="POST", body={})[0] == 404)
 
+        # The client has to actually receive the 413 rather than a connection
+        # reset, which is what happens if the server answers without draining
+        # the body it is refusing. macOS surfaces that; Windows tolerated it.
         big = {"x": "a" * (srv.MAX_BODY + 32)}
-        check("an oversized body is refused",
-              s.request("/api/settings", token=token, method="POST",
-                        body=big)[0] == 413)
+        code, body, _h = s.request("/api/settings", token=token,
+                                   method="POST", body=big)
+        check("an oversized body is refused", code == 413, code)
+        check("and the client receives the message, not a reset",
+              b"too large" in body, body[:80])
 
         code, _b, _h = s.request("/api/settings", token=token, method="POST",
                                  body=None)
