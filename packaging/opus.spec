@@ -45,8 +45,10 @@ a = Analysis(
     pathex=[str(ROOT)],
     binaries=[],
     datas=datas,
+    # cryptography is imported lazily by pypdf for AES, so PyInstaller's
+    # static analysis does not always find it on its own.
     hiddenimports=["tkinter", "tkinter.ttk", "tkinter.filedialog",
-                   "tkinter.messagebox"],
+                   "tkinter.messagebox", "cryptography"],
     hookspath=[],
     runtime_hooks=[],
     # Trimmed because they are large, pulled in transitively, and unused here.

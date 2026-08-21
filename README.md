@@ -165,7 +165,7 @@ release pipeline handles it.
 ## Running it from source
 
 ```bash
-pip3 install pypdf reportlab pikepdf
+pip3 install pypdf reportlab pikepdf cryptography
 python3 opus.py
 ```
 

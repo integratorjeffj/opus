@@ -52,7 +52,7 @@ COMMAND LINE (optional -- the app window is the normal way to use this)
     python3 opus.py --paypal examples/paypal_sample.csv         --catalog examples/catalog_map.csv --out ./licensed --dry-run
 
 REQUIREMENTS
-    pip3 install pypdf reportlab pikepdf
+    pip3 install pypdf reportlab pikepdf cryptography
     qpdf is optional (brew install qpdf); without it the extra form-flatten
     pass is skipped, which is fine for engraved music.
 
@@ -78,6 +78,7 @@ from pathlib import Path
 
 try:
     from pypdf import PdfReader, PdfWriter
+    from pypdf.errors import DependencyError
 except ImportError:
     sys.exit("Missing dependency 'pypdf'. Install it with: pip3 install pypdf")
 
@@ -91,6 +92,15 @@ try:
     import pikepdf
 except ImportError:
     sys.exit("Missing dependency 'pikepdf'. Install it with: pip3 install pikepdf")
+
+# pypdf needs this to read an AES-encrypted source, which happens whenever an
+# already-licensed file is re-stamped. Imported here rather than lazily so the
+# failure is a clear message at startup instead of a confusing one mid-batch.
+try:
+    import cryptography  # noqa: F401
+except ImportError:
+    sys.exit("Missing dependency 'cryptography'. Install it with: "
+             "pip3 install cryptography")
 
 
 # ---------------------------------------------------------------------------
@@ -470,9 +480,18 @@ def stamp_pages(input_path, header_text, footer_text):
     reader = PdfReader(str(input_path))
     if reader.is_encrypted:
         try:
-            reader.decrypt("")
-        except Exception:
-            raise RuntimeError("Source PDF is password-protected and cannot be opened.")
+            opened = reader.decrypt("")
+        except DependencyError as exc:
+            # Never blame the file for a missing library.
+            raise RuntimeError(
+                "Source PDF is encrypted and this build cannot read it: "
+                "{}".format(exc))
+        except Exception as exc:
+            raise RuntimeError(
+                "Source PDF could not be opened: {}".format(exc))
+        if not opened:
+            raise RuntimeError(
+                "Source PDF is password-protected and cannot be opened.")
 
     writer = PdfWriter()
 
