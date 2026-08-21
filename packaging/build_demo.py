@@ -89,19 +89,82 @@ def read_connectors():
 
 
 def build_plan():
-    """The review table, derived from the sample export rather than typed out."""
+    """The review table, derived from the sample export rather than typed out.
+
+    Carries the match provenance the planner already computes -- whether a
+    title matched exactly, by containment, or fuzzily. Two different PayPal
+    title strings resolving to one catalogue entry is the most interesting
+    thing the matcher does, and it is invisible unless it is shown.
+    """
     sys.path.insert(0, str(ROOT))
     import opus
     orders, _ = opus.read_paypal_orders(ROOT / "examples" / "paypal_sample.csv")
     catalog = opus.load_catalog(_temp_catalog_map())
-    plan = opus.plan_paypal_batch(orders, catalog, ROOT / "_demo_out")
+    plan = opus.plan_paypal_batch(orders, catalog, None)
     return [{
         "date": opus.format_date(e["order_date"]),
         "buyer": e["buyer"],
+        "email": e["email"],
+        "order_ref": e["order_ref"],
         "item": e["item_title"],
+        "matched": e["matched_title"],
+        "match": e["match"],
         "files": len(e["files"]),
+        "parts": [Path(str(f)).name for f in e["files"]],
         "status": e["disposition"],
     } for e in plan]
+
+
+def build_catalog():
+    """The pieces and their parts, read from the committed sample catalogue."""
+    sys.path.insert(0, str(ROOT))
+    from connectors.catalog_local import collect_pdfs, scan_catalog
+    out = []
+    for item in scan_catalog(ROOT / "samples" / "catalog"):
+        parts = [p.name for p in collect_pdfs(Path(item.ref))]
+        pages = {}
+        for name in parts:
+            pages[name] = _page_count(Path(item.ref) / name)
+        out.append({"title": item.title, "parts": parts, "pages": pages,
+                    "files": item.file_count})
+    return out
+
+
+def _page_count(pdf_path):
+    try:
+        import pypdf
+        return len(pypdf.PdfReader(str(pdf_path)).pages)
+    except Exception:
+        return 0
+
+
+def build_dropped():
+    """The export rows that never became orders, and why.
+
+    The filtering is the quiet half of the product. Showing what was thrown
+    away is more convincing than a count of what survived.
+    """
+    import csv as _csv
+    rows = list(_csv.DictReader(
+        (ROOT / "examples" / "paypal_sample.csv").open(encoding="utf-8-sig")))
+    out = []
+    for r in rows:
+        rtype = (r.get("Type") or "").strip()
+        status = (r.get("Status") or "").strip()
+        title = (r.get("Item Title") or "").strip()
+        reason = None
+        if "Refund" in rtype:
+            reason = "Refund, not a sale"
+        elif "Withdrawal" in rtype:
+            reason = "Withdrawal, no item"
+        elif status.lower() not in ("completed", "complete"):
+            reason = "{}, not yet a completed sale".format(status)
+        if reason:
+            out.append({"who": (r.get("Name") or "").strip(),
+                        "item": title or "(no item title)",
+                        "amount": (r.get("Gross") or "").strip(),
+                        "reason": reason})
+    return out
 
 
 def _temp_catalog_map():
@@ -138,6 +201,8 @@ def main():
             "catalog": "examples/catalog_map.csv",
         },
         "plan": build_plan(),
+        "catalog": build_catalog(),
+        "dropped": build_dropped(),
         "ledger": ledger,
         "progress": build_progress(ledger),
         "connectors": read_connectors(),
@@ -170,8 +235,10 @@ def main():
 
     size = len(html.encode("utf-8"))
     print("wrote {}  ({:.0f} KB)".format(DEMO.relative_to(ROOT), size / 1024))
-    print("  {} plan rows, {} ledger rows, {} connectors".format(
-        len(data["plan"]), len(ledger), len(data["connectors"])))
+    print("  {} plan rows, {} ledger rows, {} connectors, {} pieces, "
+          "{} filtered rows".format(
+              len(data["plan"]), len(ledger), len(data["connectors"]),
+              len(data["catalog"]), len(data["dropped"])))
     ready = sum(1 for r in data["plan"] if r["status"] == "ready")
     print("  {} ready, {} file(s)".format(
         ready, sum(r["files"] for r in data["plan"] if r["status"] == "ready")))
