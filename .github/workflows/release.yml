@@ -42,6 +42,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pypdf reportlab pikepdf cryptography Pillow pyinstaller
+          # pypdfium2 renders the demo's page crop. Build-time only --
+          # the app itself never needs it.
+          python -m pip install pypdfium2
 
       - name: Verify the engine before packaging it
         shell: bash

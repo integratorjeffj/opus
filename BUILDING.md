@@ -7,7 +7,7 @@ whole demo without a checkout, a network connection, or a real order.
 ## Build it locally
 
 ```bash
-pip3 install pypdf reportlab pikepdf cryptography Pillow pyinstaller
+pip3 install pypdf reportlab pikepdf cryptography Pillow pyinstaller pypdfium2
 python3 packaging/build.py --clean
 ```
 

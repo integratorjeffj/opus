@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Build the public demo out of the application's own interface.
 
+    pip3 install Pillow pypdfium2
     python3 packaging/build_demo.py
+
+Pillow and pypdfium2 are needed only to render the page crop shown in the
+drawer; the application itself never imports either.
 
 docs/demo/index.html is generated, never hand-edited. It inlines the real
 app.html, app.css and app.js from webui/static and prepends a mock adapter that
