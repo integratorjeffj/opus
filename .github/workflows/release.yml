@@ -75,6 +75,21 @@ jobs:
         shell: bash
         run: python opus.py --verify-ledger samples/licensed/license_ledger.csv
 
+      - name: The published demo still matches the app's interface
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: |
+          # docs/demo is generated from webui/static. Regenerating it must be a
+          # no-op; if it is not, the interface changed and the demo was not
+          # rebuilt, which is how the two drifted apart last time.
+          python packaging/build_demo.py
+          if ! git diff --quiet -- docs/demo/index.html; then
+            echo "::error title=Demo is stale::webui/static changed without regenerating docs/demo. Run: python3 packaging/build_demo.py"
+            git diff --stat -- docs/demo/index.html
+            exit 1
+          fi
+          echo "demo matches the interface"
+
       - name: Build the app
         run: python packaging/build.py --clean
 

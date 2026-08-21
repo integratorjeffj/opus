@@ -169,6 +169,19 @@ Worth clicking:
 - **Any ledger row** — the licence notice at readable size, and the master
   page beside the issued one.
 
+### One interface, two backends
+
+`docs/demo/` is **generated from the app's own interface**, not written
+separately. `packaging/build_demo.py` inlines the real `webui/static/app.html`,
+`app.css` and `app.js` and swaps in a mock adapter answering the same endpoints
+the local server does, from data captured by running the engine.
+
+That is deliberate. When the demo and the app were separate files, the demo got
+the design attention and the app got the features, until the polished one could
+not do anything and the capable one looked like 1998. CI now regenerates the
+demo and fails if the result differs from what is committed, so that drift
+cannot happen again.
+
 ### What changed from v1 to v2
 
 The first demo drew a fake desktop window and replayed a single linear script.
