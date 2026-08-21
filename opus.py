@@ -946,8 +946,61 @@ def launch_gui():
 
     root = tk.Tk()
     root.title("{} {} - Sheet Music Licensing".format(APP_NAME, __version__))
-    root.geometry("880x680")
-    root.minsize(780, 600)
+    root.geometry("980x740")
+    root.minsize(840, 640)
+
+    # A small, dependency-free design system.  Keeping this in ttk means the
+    # packaged app still ships as one Python file while looking intentional on
+    # Windows, macOS and Linux.
+    colors = {
+        "ink": "#17233C",
+        "muted": "#667085",
+        "canvas": "#F5F7FB",
+        "surface": "#FFFFFF",
+        "border": "#D8DEE9",
+        "navy": "#14213D",
+        "accent": "#D39B3A",
+        "accent_active": "#B87F22",
+        "success": "#26735B",
+    }
+    root.configure(background=colors["canvas"])
+    style = ttk.Style(root)
+    style.theme_use("clam")
+    style.configure(".", font=("Segoe UI", 10), foreground=colors["ink"])
+    style.configure("TFrame", background=colors["canvas"])
+    style.configure("Surface.TFrame", background=colors["surface"])
+    style.configure("TLabel", background=colors["canvas"], foreground=colors["ink"])
+    style.configure("Muted.TLabel", foreground=colors["muted"])
+    style.configure("TLabelFrame", background=colors["surface"],
+                    bordercolor=colors["border"], relief="solid")
+    style.configure("TLabelFrame.Label", background=colors["surface"],
+                    foreground=colors["ink"], font=("Segoe UI Semibold", 10))
+    style.configure("TButton", padding=(12, 7), borderwidth=1,
+                    background=colors["surface"], bordercolor=colors["border"])
+    style.map("TButton", background=[("active", "#EEF1F6")])
+    style.configure("Accent.TButton", foreground="#FFFFFF",
+                    background=colors["accent"], bordercolor=colors["accent"],
+                    font=("Segoe UI Semibold", 10), padding=(16, 8))
+    style.map("Accent.TButton",
+              background=[("active", colors["accent_active"]),
+                          ("disabled", "#C7CBD3")],
+              foreground=[("disabled", "#FFFFFF")])
+    style.configure("TNotebook", background=colors["canvas"], borderwidth=0)
+    style.configure("TNotebook.Tab", padding=(18, 10),
+                    background="#E8ECF3", foreground=colors["muted"])
+    style.map("TNotebook.Tab",
+              background=[("selected", colors["surface"]), ("active", "#F0F3F8")],
+              foreground=[("selected", colors["navy"])],
+              font=[("selected", ("Segoe UI Semibold", 10))])
+    style.configure("Treeview", rowheight=30, background=colors["surface"],
+                    fieldbackground=colors["surface"], bordercolor=colors["border"])
+    style.configure("Treeview.Heading", font=("Segoe UI Semibold", 9),
+                    foreground=colors["muted"], background="#EEF1F6",
+                    padding=(8, 7), relief="flat")
+    style.map("Treeview", background=[("selected", colors["navy"])],
+              foreground=[("selected", "#FFFFFF")])
+    style.configure("Horizontal.TProgressbar", troughcolor="#E8ECF3",
+                    background=colors["accent"], bordercolor="#E8ECF3")
 
     # Nothing can be queued until the operator acknowledges that the material
     # they are about to load is fictional or otherwise non-sensitive. The main
@@ -959,20 +1012,31 @@ def launch_gui():
         return 1
     root.deiconify()
 
-    main = ttk.Frame(root, padding=14)
+    main = ttk.Frame(root, padding=(20, 18, 20, 14))
     main.pack(fill="both", expand=True)
 
-    head = ttk.Frame(main)
-    head.pack(fill="x")
-    ttk.Label(head, text=APP_NAME,
-              font=("Helvetica", 16, "bold")).pack(side="left")
-    ttk.Label(head, text="v" + __version__,
-              foreground="#777").pack(side="left", padx=(8, 0), pady=(5, 0))
+    # The header now communicates product, purpose and demo state in one glance.
+    head = tk.Frame(main, background=colors["navy"], padx=22, pady=18)
+    head.pack(fill="x", pady=(0, 14))
+    brand = tk.Frame(head, background=colors["navy"])
+    brand.pack(side="left", fill="x", expand=True)
+    tk.Label(brand, text=APP_NAME.upper(), background=colors["navy"],
+             foreground="#FFFFFF", font=("Segoe UI Semibold", 20)).pack(anchor="w")
+    tk.Label(brand, text="Sheet music licensing, without the manual handoff",
+             background=colors["navy"], foreground="#C9D3E6",
+             font=("Segoe UI", 10)).pack(anchor="w", pady=(3, 0))
+    badge = tk.Label(head, text="  DEMO WORKSPACE  ", background="#2B3B5E",
+                     foreground="#F4C76B", font=("Segoe UI Semibold", 9),
+                     padx=8, pady=6)
+    badge.pack(side="right", padx=(18, 0))
+    tk.Label(head, text="v" + __version__, background=colors["navy"],
+             foreground="#9EABC4", font=("Segoe UI", 9)).pack(side="right")
 
     update_var = tk.StringVar(value="")
-    update_lbl = ttk.Label(head, textvariable=update_var, foreground="#8a6320",
-                           cursor="hand2")
-    update_lbl.pack(side="right", pady=(5, 0))
+    update_lbl = tk.Label(brand, textvariable=update_var,
+                          background=colors["navy"], foreground="#F4C76B",
+                          cursor="hand2", font=("Segoe UI", 9))
+    update_lbl.pack(anchor="w", pady=(4, 0))
 
     def open_releases(_event=None):
         if update_var.get():
@@ -987,10 +1051,6 @@ def launch_gui():
             "Version {} is available - click to download".format(version)))
 
     check_for_update_async(announce_update)
-
-    ttk.Label(main, text="Stamp, flatten and lock sheet music PDFs, then log "
-                         "who received what.",
-              foreground="#555").pack(anchor="w", pady=(0, 10))
 
     notebook = ttk.Notebook(main)
     notebook.pack(fill="both", expand=True)
@@ -1021,7 +1081,11 @@ def launch_gui():
     files_frame = ttk.LabelFrame(tab1, text="PDFs to stamp", padding=10)
     files_frame.pack(fill="both", expand=True, pady=(10, 0))
 
-    listbox = tk.Listbox(files_frame, height=8, activestyle="none")
+    listbox = tk.Listbox(files_frame, height=8, activestyle="none",
+                         background=colors["surface"], foreground=colors["ink"],
+                         selectbackground=colors["navy"], selectforeground="#FFFFFF",
+                         borderwidth=1, relief="solid", highlightthickness=0,
+                         font=("Segoe UI", 10))
     scroll = ttk.Scrollbar(files_frame, orient="vertical", command=listbox.yview)
     listbox.configure(yscrollcommand=scroll.set)
     listbox.pack(side="left", fill="both", expand=True)
@@ -1031,8 +1095,12 @@ def launch_gui():
 
     def refresh_list():
         listbox.delete(0, "end")
-        for f in state["files"]:
-            listbox.insert("end", str(f))
+        if state["files"]:
+            for f in state["files"]:
+                listbox.insert("end", str(f))
+        else:
+            listbox.insert("end", "No PDFs queued yet — add files or a catalog folder to begin")
+            listbox.itemconfigure(0, foreground=colors["muted"])
         count_var.set("{} file(s) queued".format(len(state["files"])))
 
     def add_files():
@@ -1061,7 +1129,8 @@ def launch_gui():
     ttk.Button(btns, text="Clear", command=clear_files).pack(fill="x", pady=2)
 
     ttk.Label(tab1, textvariable=count_var, foreground="#555").pack(anchor="w", pady=(6, 0))
-    manual_btn = ttk.Button(tab1, text="Stamp All")
+    refresh_list()
+    manual_btn = ttk.Button(tab1, text="Stamp All PDFs", style="Accent.TButton")
     manual_btn.pack(anchor="e", pady=(8, 0))
 
     # ===================== Tab 2: PayPal orders ============================
@@ -1129,17 +1198,24 @@ def launch_gui():
         state["catalog_path"] = str(sample_catalog)
         paypal_var.set(str(sample_paypal))
         catalog_var.set(str(sample_catalog))
-        messagebox.showinfo(
-            "Sample order loaded",
-            "Loaded the fictional PayPal export and its catalog map.\n\n"
-            "It contains three good orders, one piece that is not in the "
-            "catalog, plus a refund, a withdrawal and a pending payment that "
-            "should all be filtered out.\n\nPress Review to see the plan.")
+        # A fresh destination prevents an earlier demo from making these
+        # orders appear already issued. The reviewer can go from this button
+        # directly to the populated review table without any file picking.
+        demo_out = Path(tempfile.mkdtemp(prefix="opus-demo-"))
+        state["out_dir"] = str(demo_out)
+        out_var.set(str(demo_out))
+        status_var.set("Sample workspace loaded — reviewing fictional orders.")
+        root.after_idle(load_plan)
 
     if bundled_demo_paths()[0]:
-        ttk.Button(pick, text="Try it with the sample order",
-                   command=load_sample).grid(row=3, column=1, sticky="w",
-                                             padx=10, pady=(6, 0))
+        ttk.Separator(pick, orient="horizontal").grid(
+            row=3, column=0, columnspan=2, sticky="ew", pady=(12, 10))
+        ttk.Label(pick, text="New here? Preview the complete workflow with safe sample data.",
+                  style="Muted.TLabel").grid(row=4, column=0, columnspan=2,
+                                              sticky="w", pady=(0, 6))
+        ttk.Button(pick, text="Launch Sample Demo  →", style="Accent.TButton",
+                   command=load_sample).grid(row=5, column=0, columnspan=2,
+                                             sticky="w", pady=(0, 2))
     pick.columnconfigure(1, weight=1)
 
     review = ttk.LabelFrame(tab2, text="Review before stamping", padding=10)
@@ -1205,11 +1281,13 @@ def launch_gui():
 
     pp_btns = ttk.Frame(tab2)
     pp_btns.pack(fill="x", pady=(8, 0))
-    ttk.Button(pp_btns, text="Load orders", command=load_plan).pack(side="left")
-    paypal_btn = ttk.Button(pp_btns, text="Stamp Selected Orders")
+    ttk.Button(pp_btns, text="Review Orders", command=load_plan).pack(side="left")
+    paypal_btn = ttk.Button(pp_btns, text="Stamp Selected Orders",
+                            style="Accent.TButton")
     paypal_btn.pack(side="right")
-    ttk.Label(pp_btns, text="Highlighted rows will be stamped. "
-                            "Cmd-click to change the selection.",
+    multi_select_key = "Cmd" if sys.platform == "darwin" else "Ctrl"
+    ttk.Label(pp_btns, text="Highlighted rows will be stamped. {}-click to "
+                            "change the selection.".format(multi_select_key),
               foreground="#555").pack(side="left", padx=12)
 
     # ===================== Tab 3: Connections ==============================
@@ -1217,7 +1295,7 @@ def launch_gui():
     notebook.add(tab3, text="  Connections  ")
 
     ttk.Label(tab3, text="Where orders and master files can come from.",
-              font=("Helvetica", 11, "bold")).pack(anchor="w")
+              font=("Segoe UI Semibold", 11)).pack(anchor="w")
     ttk.Label(tab3, foreground="#555", wraplength=760, justify="left",
               text=("Anything marked planned is a contract with no "
                     "implementation behind it. Selecting one is an error "
