@@ -19,8 +19,10 @@ DEMO DATA ONLY
     set OPUS_DEMO_ACK=1) to confirm up front in a scripted run. Safe sample
     data ships in examples/ and samples/.
 
-Double-click this file (or run it with no arguments) to open the app window.
-No terminal knowledge required.
+Double-click this file, or run it with no arguments, and Opus opens its
+dashboard in your browser. It is a local application -- the server binds to
+this machine only and nothing is uploaded anywhere. No terminal knowledge
+required.
 
 TWO WAYS TO USE IT
     Manual Batch tab  - type a licensee name, queue files or a folder, stamp.
@@ -1723,7 +1725,11 @@ def resolve_catalog_map(args, parser):
 def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     if not argv:
-        return launch_gui()
+        # Double-clicking, or running with no arguments, opens the dashboard.
+        # The tkinter window is still there behind --gui, but it only ever
+        # exposed the stamping half and it is not where new work goes.
+        from webui.server import serve as serve_app
+        return serve_app()
 
     parser = argparse.ArgumentParser(
         description="Batch-stamp sheet music PDFs with a license header.",
@@ -1747,7 +1753,9 @@ def main(argv=None):
                         help="Scan a catalog folder and write a starter map")
     parser.add_argument("-o", "--output-csv", type=Path, default=Path("catalog_map.csv"),
                         help="Where --make-catalog writes its map")
-    parser.add_argument("--gui", action="store_true", help="Open the app window")
+    parser.add_argument("--gui", action="store_true",
+                        help="Open the older tkinter window. Superseded by "
+                             "--app; kept for the stamping-only workflow.")
     parser.add_argument("--demo-ack", action="store_true",
                         help="Confirm up front that the input is fictional "
                              "or non-sensitive (skips the interactive "
@@ -1830,6 +1838,13 @@ def main(argv=None):
                      help="Name to sign delivery emails with")
     rev.add_argument("--attach", action="store_true",
                      help="Attach the files instead of sending a link")
+    rev.add_argument("--app", action="store_true",
+                     help="Open the Opus dashboard in a browser. This is the "
+                          "normal way to use it.")
+    rev.add_argument("--app-port", type=int, default=7777,
+                     help="Port for --app (default: 7777)")
+    rev.add_argument("--no-browser", action="store_true",
+                     help="With --app: do not open a browser automatically")
     rev.add_argument("--verify-ledger", type=Path, metavar="PATH",
                      help="Re-walk a ledger's hash chain and report, then exit")
     args = parser.parse_args(argv)
@@ -1845,6 +1860,10 @@ def main(argv=None):
         for line in report:
             print(line)
         return 0 if ok else 1
+
+    if args.app:
+        from webui.server import serve as serve_app
+        return serve_app(port=args.app_port, open_browser=not args.no_browser)
 
     if args.serve_portal:
         from connectors.delivery_portal import serve

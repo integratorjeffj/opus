@@ -17,3 +17,6 @@ packaging/opus.icns
 # Synced remote catalogues and the watcher's memory of what it has seen.
 .opus-catalog/
 .opus-seen
+
+# Local app state written at runtime.
+.opus-cache/

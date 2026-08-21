@@ -30,6 +30,9 @@ datas = [
     (str(ROOT / "samples" / "catalog" / "Fanfare for Two Trumpets"),
      "samples/catalog/Fanfare for Two Trumpets"),
     (str(ROOT / "LICENSE"), "."),
+    # The interface itself. Without this the frozen app has an engine and no
+    # way to drive it.
+    (str(ROOT / "webui" / "static"), "webui/static"),
 ]
 
 if IS_WIN:
@@ -56,7 +59,8 @@ a = Analysis(
                    "connectors.orders_paypal_csv", "connectors.orders_paypal_api",
                    "connectors.planned", "connectors.watch",
                    "connectors.confidence", "connectors.delivery_portal",
-                   "connectors.delivery_smtp"],
+                   "connectors.delivery_smtp",
+                   "webui", "webui.server", "webui.api", "webui.state"],
     hookspath=[],
     runtime_hooks=[],
     # Trimmed because they are large, pulled in transitively, and unused here.

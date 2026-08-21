@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opus</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="shell">
+
+  <nav class="side" aria-label="Workspaces">
+    <div class="brand">
+      <div class="n">Opus</div>
+      <div class="v" id="verline">&nbsp;</div>
+    </div>
+
+    <button class="nav" data-ws="overview" aria-current="true">
+      <span class="ico" aria-hidden="true">&#9632;</span>Overview</button>
+    <button class="nav" data-ws="orders">
+      <span class="ico" aria-hidden="true">&#9776;</span>Orders
+      <span class="badge" id="ordersbadge" hidden></span></button>
+    <button class="nav" data-ws="catalog">
+      <span class="ico" aria-hidden="true">&#9834;</span>Catalogue</button>
+    <button class="nav" data-ws="ledger">
+      <span class="ico" aria-hidden="true">&#9636;</span>Ledger</button>
+
+    <div class="navlbl">Saved views</div>
+    <div id="viewlist"></div>
+
+    <div class="navlbl">Setup</div>
+    <button class="nav" data-ws="conn">
+      <span class="ico" aria-hidden="true">&#9741;</span>Connections</button>
+    <button class="nav" data-ws="settings">
+      <span class="ico" aria-hidden="true">&#9881;</span>Settings</button>
+
+    <div class="foot" id="sidefoot">Nothing leaves this machine.</div>
+  </nav>
+
+  <main class="main" id="main">
+
+    <div class="banner" id="setupbanner" hidden>
+      <span class="ic" aria-hidden="true">&#9888;</span>
+      <span id="setuptext"></span>
+      <button class="btn sm" id="gosetup">Open Settings</button>
+    </div>
+
+    <!-- ============ Overview ============ -->
+    <section class="ws" id="ws-overview">
+      <div class="wshead">
+        <div>
+          <h1 id="ovtitle">Overview</h1>
+          <p id="ovsub">Nothing is written until you approve it.</p>
+        </div>
+        <div class="acts">
+          <button class="btn" id="ov-arrange">Arrange</button>
+          <button class="btn go" id="ov-open">Open the orders</button>
+        </div>
+      </div>
+      <div id="widgets"></div>
+    </section>
+
+    <!-- ============ Orders ============ -->
+    <section class="ws" id="ws-orders" hidden>
+      <div class="wshead">
+        <div>
+          <h1>Orders</h1>
+          <p id="ordersblurb">&nbsp;</p>
+        </div>
+        <div class="acts">
+          <button class="btn" id="refreshorders">Refresh</button>
+          <button class="btn go" id="runbtn">Stamp the released orders</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Release threshold
+          <span class="r"><button class="btn sm quiet" id="savethreshold">Save</button></span>
+        </h2>
+        <div class="body">
+          <div class="dial">
+            <input type="range" id="dial" min="0" max="1.05" step="0.01" value="1.01"
+                   aria-label="Release threshold">
+            <span class="dialval" id="dialval">1.01</span>
+          </div>
+          <div class="dialout" id="dialout"></div>
+          <p class="preview-line" id="dialnote"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>The plan <span class="r">click a row for the detail</span></h2>
+        <div class="rows" id="orderrows"></div>
+        <div class="console" id="console" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ Catalogue ============ -->
+    <section class="ws" id="ws-catalog" hidden>
+      <div class="wshead">
+        <div><h1>Catalogue</h1>
+          <p id="catsub">One folder per piece, the parts inside.</p></div>
+        <div class="acts"><button class="btn" id="refreshcat">Refresh</button></div>
+      </div>
+      <div class="pieces" id="pieces"></div>
+    </section>
+
+    <!-- ============ Ledger ============ -->
+    <section class="ws" id="ws-ledger" hidden>
+      <div class="wshead">
+        <div><h1>Ledger</h1>
+          <p>One row per file, written the moment it is issued.</p></div>
+        <div class="acts">
+          <button class="btn" id="verifybtn">Check the chain</button>
+          <button class="btn" id="exportbtn">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" id="ledgersearch"
+                 placeholder="Filter by licensee, order reference or filename&hellip;"
+                 aria-label="Filter the ledger">
+          <select id="ledgerstatus" aria-label="Filter by status" style="width:auto">
+            <option value="">Every status</option>
+            <option value="ok">Issued</option>
+            <option value="held">Held</option>
+          </select>
+          <button class="btn sm" id="saveview">Save this view</button>
+          <span class="count" id="ledgercount"></span>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr id="ledgerhead"></tr></thead>
+            <tbody id="ledgerbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Connections ============ -->
+    <section class="ws" id="ws-conn" hidden>
+      <div class="wshead">
+        <div><h1>Connections</h1>
+          <p>Fill in the fields and press Test. Anything marked planned is a
+             contract with no implementation behind it.</p></div>
+      </div>
+      <div class="conngrid" id="conngrid"></div>
+    </section>
+
+    <!-- ============ Settings ============ -->
+    <section class="ws" id="ws-settings" hidden>
+      <div class="wshead">
+        <div><h1>Settings</h1>
+          <p id="cfgpath">&nbsp;</p></div>
+      </div>
+
+      <div class="card">
+        <h2>Folders and files</h2>
+        <div class="body" id="pathfields"></div>
+      </div>
+
+      <div class="card">
+        <h2>Appearance</h2>
+        <div class="body">
+          <div class="field">
+            <label class="fl" for="theme">Theme</label>
+            <select id="theme">
+              <option value="system">Match the system</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="fl" for="density">Density</label>
+            <select id="density">
+              <option value="compact">Compact</option>
+              <option value="comfortable">Comfortable</option>
+              <option value="roomy">Roomy</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="fl" for="publisher">Publisher name, for delivery emails</label>
+            <input type="text" id="publisher" placeholder="Fictitious Editions">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Delivery</h2>
+        <div class="body">
+          <div class="field">
+            <label class="fl"><input type="checkbox" id="autodeliver"
+              style="width:auto;margin-right:8px">Deliver released orders automatically</label>
+            <p class="hintline">Off by default. Files are stamped either way;
+               this only decides whether they are sent without you.</p>
+          </div>
+          <div class="field" id="channelfields"></div>
+          <button class="btn" id="savedelivery">Save delivery settings</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true"
+       aria-labelledby="dtitle">
+  <div class="dhead">
+    <div><h2 id="dtitle"></h2><div class="sub" id="dsub"></div></div>
+    <button class="dclose" id="dclose" aria-label="Close">&times;</button>
+  </div>
+  <div class="dbody" id="dbody"></div>
+</aside>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
